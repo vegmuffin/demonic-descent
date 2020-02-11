@@ -4,181 +4,170 @@ using UnityEngine;
 
 public class LayoutGen : MonoBehaviour
 {
-
     [SerializeField] private GameObject square;
+    private List<Vector2> roomCoordinates = new List<Vector2>();
+    private bool exitCondition = false;
+    private bool alarm = false;
+    private int neighbours;
 
-    void Start()
+    private void Start()
     {
-        int pathLength = 10;
-        bool[,] grid = GenerateLayout(pathLength);
-        Visualize(ref grid);
+        GenerateLayout(300);
+        Visualize();
     }
 
-    public bool[,] GenerateLayout(int pathLength)
+    private void GenerateLayout(int primaryPathLength)
     {
-        bool[,] gridArray = new bool[pathLength+1, pathLength+1];
+        Vector2 currentCoord = Vector2.zero;
+        roomCoordinates.Add(currentCoord);
 
-        // Filling all values with false initially
-        for(int x = 0; x < pathLength+1; ++x)
+        int pathLeft = primaryPathLength;
+        while(pathLeft > 0 && !exitCondition)
         {
-            for(int y = 0; y < pathLength+1; ++y)
-            {
-                gridArray[x,y] = false;
-            }
+            Vector2 newCoord = GiveCoordinate(currentCoord);
+            if(newCoord == currentCoord)
+                continue;
+            currentCoord = newCoord;
+            roomCoordinates.Add(currentCoord);
+            --pathLeft;
         }
-
-        // Generating initial path
-        int pathX = Random.Range(0, pathLength);
-        int pathY = Random.Range(0, pathLength);
-
-        // Saving the starting point
-        int startingX = pathX;
-        int startingY = pathY;
-
-        int pathLeft = pathLength;
-        gridArray[pathX, pathY] = true;
-        Debug.Log("START: x - " + pathX + ", y - " + pathY);
-
-        while(pathLeft > 0)
-        {
-            int randomPath = Random.Range(1, 4);
-            bool foundValidPath = false;
-            switch(randomPath)
-            {
-                // Left
-                case 1:
-                    int minusX = pathX-1;
-                    if(minusX < 0)
-                        break;
-                    if(!gridArray[minusX, pathY])
-                    {
-                        if(TryCoordinate(minusX, pathY, ref gridArray))
-                        {
-                            foundValidPath = true;
-                            pathX = minusX;
-                        }
-                    }
-                    break;
-
-                // Right
-                case 2:
-                    int plusX = pathX+1;
-                    if(plusX >= gridArray.GetLength(0))
-                        break;
-                    if(!gridArray[plusX, pathY])
-                    {
-                        if(TryCoordinate(plusX, pathY, ref gridArray))
-                        {
-                            pathX = plusX;
-                            foundValidPath = true;
-                        }
-                    }
-                    break;
-
-                // Up
-                case 3:
-                    int plusY = pathY+1;
-                    if(plusY >= gridArray.GetLength(0))
-                        break;
-                    if(!gridArray[pathX, plusY])
-                    {
-                        if(TryCoordinate(pathX, plusY, ref gridArray))
-                        {
-                            pathY = plusY;
-                            foundValidPath = true;
-                        }
-                    }
-                            
-                    break;
-
-                // Down
-                case 4:
-                    int minusY = pathY-1;
-                    if(minusY < 0)
-                        break;
-                    if(!gridArray[pathX, minusY])
-                    {
-                        if(TryCoordinate(pathX, minusY, ref gridArray))
-                        {
-                            pathY = minusY;
-                            foundValidPath = true;
-                        }
-                    }
-                    break;
-            }
-            if(foundValidPath)
-            {
-                --pathLeft;
-                Debug.Log("x - " + pathX + ", y - " + pathY);
-                gridArray[pathX, pathY] = true;
-            }
-        }
-
-        return gridArray;
     }
 
-    private bool TryCoordinate(int x, int y, ref bool[,] gridArray)
+    private void GenerateForks()
     {
-        // Checking neighbours
-        int neighbourCount = 0;
-        if(x-1 < 0)
-        {
-            // Nothing
-            
-        } else
-        {
-            if(gridArray[x-1, y])
-            {
-                ++neighbourCount;
-            }
-        }
-        if(x+1 >= gridArray.GetLength(0))
-        {
-            // Nothing
-            
-        } else
-        {
-            if(gridArray[x+1, y])
-            {
-                ++neighbourCount;
-            }
-        }
-        if(y+1 >= gridArray.GetLength(0))
-        {
-            // Nothing
-        } else
-        {
-            if(gridArray[x, y+1])
-            {
-                ++neighbourCount;
-            }
-        }
-        if(y-1 < 0)
-        {
-            // Nothing
-        } else
-        {
-            if(gridArray[x, y-1])
-            {
-                ++neighbourCount;
-            }
-        }
-        return neighbourCount > 1 ? false : true;
+
     }
 
-    private void Visualize(ref bool[,] gridArray)
+    private void ForkRecursion()
     {
-        for(int i = 0; i < gridArray.GetLength(0)-1; ++i)
+
+    }
+
+    private Vector2 GiveCoordinate(Vector2 currentCoord)
+    {
+        int randomCoord = Random.Range(1, 5);
+        Vector2 coordToGive = currentCoord;
+        switch(randomCoord)
         {
-            for(int j = 0; j < gridArray.GetLength(1)-1; ++j)
+            case 1:
+                Vector2 leftCoord = new Vector2(currentCoord.x-1, currentCoord.y);
+                if(!ContainsCoord(leftCoord))
+                    if(TryCoordinate(leftCoord))
+                        coordToGive = leftCoord;
+                break;
+            case 2:
+                Vector2 rightCoord = new Vector2(currentCoord.x+1, currentCoord.y);
+                if(!ContainsCoord(rightCoord))
+                    if(TryCoordinate(rightCoord))
+                        coordToGive = rightCoord;
+                break;
+            case 3:
+                Vector2 bottomCoord = new Vector2(currentCoord.x, currentCoord.y-1);
+                if(!ContainsCoord(bottomCoord))
+                    if(TryCoordinate(bottomCoord))
+                        coordToGive = bottomCoord;
+                break;
+            case 4:
+                Vector2 topCoord = new Vector2(currentCoord.x, currentCoord.y+1);
+                if(!ContainsCoord(topCoord))
+                    if(TryCoordinate(topCoord))
+                        coordToGive = topCoord;
+                break;
+        }
+        return coordToGive;
+    }
+
+    private bool TryCoordinate(Vector2 coord)
+    {
+        if(!alarm)
+            neighbours = 0;
+        
+        Vector2 checkCoord = Vector2.zero;
+
+        // Check left
+        checkCoord = new Vector2(coord.x-1, coord.y);
+        CheckDirection(checkCoord);
+        
+        // Check right
+        checkCoord = new Vector2(coord.x+1, coord.y);
+        CheckDirection(checkCoord);
+
+        // Check bottom
+        checkCoord = new Vector2(coord.x, coord.y-1);
+        CheckDirection(checkCoord);
+
+        // Check top
+        checkCoord = new Vector2(coord.x, coord.y+1);
+        CheckDirection(checkCoord);
+
+        if(neighbours == 3 && !alarm)
+        {
+            alarm = true;
+            if(CheckDeadend(coord))
             {
-                //Debug.Log("x: " + i + ", y: " + j);
-                if(gridArray[i,j])
-                {
-                    Instantiate(square, new Vector2(i, j), Quaternion.identity);
-                }
-                    
+                Debug.Log("EXIT CONDITION DETECTED");
+                exitCondition = true;
             }
+        }
+
+        return neighbours > 1 ? false : true;
+    }
+
+    private void CheckDirection(Vector2 checkCoord)
+    {
+        foreach(Vector2 existingCoord in roomCoordinates)
+            if(checkCoord == existingCoord)
+                ++neighbours;
+    }
+
+    private bool CheckDeadend(Vector2 coord)
+    {
+        neighbours = 0;
+
+        // Left
+        Vector2 checkCoord = new Vector2(coord.x-1, coord.y);
+        if(!ContainsCoord(checkCoord))
+            TryCoordinate(checkCoord);
+        Debug.Log("DEADEND CHECK (LEFT): " + neighbours + "ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
+
+        // Right
+        checkCoord = new Vector2(coord.x+1, coord.y);
+        if(!ContainsCoord(checkCoord))
+            TryCoordinate(checkCoord);
+        Debug.Log("DEADEND CHECK (RIGHT): " + neighbours + "ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
+
+        // Bottom
+        checkCoord = new Vector2(coord.x, coord.y-1);
+        if(!ContainsCoord(checkCoord))
+            TryCoordinate(checkCoord);
+        Debug.Log("DEADEND CHECK (BOTTOM): " + neighbours + "ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
+
+        // Top
+        checkCoord = new Vector2(coord.x, coord.y+1);
+        if(!ContainsCoord(checkCoord))
+            TryCoordinate(checkCoord);
+        Debug.Log("DEADEND CHECK (TOP): " + neighbours + "ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
+
+        alarm = false;
+        if(neighbours == 7)
+            return true;
+        else
+            return false;
+    }
+
+    private bool ContainsCoord(Vector2 coord)
+    {
+        foreach(Vector2 roomCoord in roomCoordinates)
+            if(coord == roomCoord)
+                return true;
+        return false;
+    }
+
+    private void Visualize()
+    {
+        foreach(Vector2 coord in roomCoordinates)
+        {
+            Instantiate(square, coord, Quaternion.identity);
         }
     }
 }
