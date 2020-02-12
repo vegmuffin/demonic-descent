@@ -7,8 +7,8 @@ public class LayoutGen : MonoBehaviour
     [SerializeField] private int forkingChance;
     [SerializeField] private float forkingDiminishing;
     
-
     private List<Vector2> roomCoordinates = new List<Vector2>();
+
     private bool exitCondition = false;
     private bool alarm = false;
     private bool forking = false;
@@ -19,9 +19,9 @@ public class LayoutGen : MonoBehaviour
 
     private void Start()
     {
-        GenerateLayout(10);
+        GenerateLayout(15);
         GenerateForks();
-        Visualize();
+        TilemapGen.instance.Generate(roomCoordinates);
     }
 
     // Generates the primary path for the layout.
