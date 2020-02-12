@@ -337,7 +337,7 @@ GameObject:
   - component: {fileID: 1283667813}
   - component: {fileID: 1283667812}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: MapGenerator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -355,6 +355,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6e8b6a39ff18d907a9de24e6bb1b331, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  forkingChance: 60
+  forkingDiminishing: 1.5
   square: {fileID: 7941667155896648078, guid: 1cba01fbebeb8a9968caa70c5be20541, type: 3}
 --- !u!4 &1283667813
 Transform:

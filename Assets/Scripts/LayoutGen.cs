@@ -4,16 +4,23 @@ using UnityEngine;
 
 public class LayoutGen : MonoBehaviour
 {
-    [SerializeField] private GameObject square;
+    [SerializeField] private int forkingChance;
+    [SerializeField] private float forkingDiminishing;
+    
+
     private List<Vector2> roomCoordinates = new List<Vector2>();
     private bool exitCondition = false;
     private bool alarm = false;
+    private bool forking = false;
     private int neighbours;
+    [Space]
+    [Header("For testing")]
+    [SerializeField] private GameObject square;
 
     private void Start()
     {
-        // Stress testing.
-        GenerateLayout(300);
+        GenerateLayout(10);
+        GenerateForks();
         Visualize();
     }
 
@@ -29,31 +36,66 @@ public class LayoutGen : MonoBehaviour
             Vector2 newCoord = GiveCoordinate(currentCoord);
             if(newCoord == currentCoord)
             {
-                Debug.Log("Cannot give that coordinate.");
+                /* Debug.Log("Cannot give that coordinate.");
                 string vectorString = string.Empty;
                 for(int i = 0; i < roomCoordinates.Count; ++i)
                 {
                     vectorString = vectorString + "(" + roomCoordinates[i].x + ", " + roomCoordinates[i].y + ") ";
                 }
-                Debug.Log("Full path: " + vectorString);
+                Debug.Log("Full path: " + vectorString); */
                 continue;
             }
             currentCoord = newCoord;
             roomCoordinates.Add(currentCoord);
             --pathLeft;
         }
+        if(exitCondition)
+            exitCondition = false;
     }
 
     // Generates forks from the primary path to give a more 'mappy' feel, rather than a single path to take.
     private void GenerateForks()
     {
-
+        forking = true;
+        int length = roomCoordinates.Count;
+        for(int i = 0; i < length; ++i)
+        {
+            float chanceToFork = forkingChance;
+            ForkRecursion(roomCoordinates[i], chanceToFork);
+            if(exitCondition)
+                exitCondition = false;
+        }
     }
 
     // Each fork has a chance to create additional rooms from its own path.
-    private void ForkRecursion()
+    private void ForkRecursion(Vector2 coord, float chance)
     {
+        int random = Random.Range(0, 100);
+        if(chance > random)
+        {
+            /* Debug.Log("Fork success!"); */
+            bool foundPath = false;
+            while(!foundPath && !exitCondition)
+            {
+                Vector2 newCoord = GiveCoordinate(coord);
+                if(newCoord == coord)
+                {
+                    /* Debug.Log("Cannot give that coordinate.");
+                    string vectorString = string.Empty;
+                    for(int i = 0; i < roomCoordinates.Count; ++i)
+                    {
+                        vectorString = vectorString + "(" + roomCoordinates[i].x + ", " + roomCoordinates[i].y + ") ";
+                    }
+                    Debug.Log("Full path: " + vectorString); */
+                    continue;
+                }
 
+                coord = newCoord;
+                roomCoordinates.Add(coord);
+                foundPath = true;
+                ForkRecursion(coord, chance/forkingDiminishing);
+            }
+        }
     }
 
     // Give a coordinate to expand to.
@@ -117,11 +159,11 @@ public class LayoutGen : MonoBehaviour
 
         if(((neighbours == 3) || neighbours == 2) && !alarm)
         {
-            Debug.Log("ALARM IS SET OFF ON COORD x: " + checkCoord.x + ", y: " + checkCoord.y);
+           /*  Debug.Log("ALARM IS SET OFF ON COORD x: " + checkCoord.x + ", y: " + checkCoord.y); */
             alarm = true;
             if(CheckDeadend(currentCoord))
             {
-                Debug.Log("EXIT CONDITION DETECTED");
+                /* Debug.Log("EXIT CONDITION DETECTED"); */
                 exitCondition = true;
             }
         }
@@ -148,7 +190,6 @@ public class LayoutGen : MonoBehaviour
         Vector2 checkCoord = new Vector2(coord.x-1, coord.y);
         if(!ContainsCoord(checkCoord))
             TryCoordinate(checkCoord, Vector2.zero);
-        Debug.Log("DEADEND CHECK (LEFT): " + neighbours + " ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
         if(neighbours == 1)
             isThereRoomLeft = true;
         tempNeighbours = neighbours;
@@ -157,7 +198,6 @@ public class LayoutGen : MonoBehaviour
         checkCoord = new Vector2(coord.x+1, coord.y);
         if(!ContainsCoord(checkCoord))
             TryCoordinate(checkCoord, Vector2.zero);
-        Debug.Log("DEADEND CHECK (RIGHT): " + neighbours + " ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
         if(neighbours - tempNeighbours == 1)
             isThereRoomLeft = true;
         tempNeighbours = neighbours;
@@ -167,7 +207,6 @@ public class LayoutGen : MonoBehaviour
         checkCoord = new Vector2(coord.x, coord.y-1);
         if(!ContainsCoord(checkCoord))
             TryCoordinate(checkCoord, Vector2.zero);
-        Debug.Log("DEADEND CHECK (BOTTOM): " + neighbours + " ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
         if(neighbours - tempNeighbours == 1)
             isThereRoomLeft = true;
         tempNeighbours = neighbours;
@@ -176,18 +215,17 @@ public class LayoutGen : MonoBehaviour
         checkCoord = new Vector2(coord.x, coord.y+1);
         if(!ContainsCoord(checkCoord))
             TryCoordinate(checkCoord, Vector2.zero);
-        Debug.Log("DEADEND CHECK (TOP): " + neighbours + " ON COORDINATE x: " + checkCoord.x + ", y: " + checkCoord.y);
         if(neighbours - tempNeighbours == 1)
             isThereRoomLeft = true;
 
-        string vectorString = string.Empty;
+        /* string vectorString = string.Empty;
         for(int i = 0; i < roomCoordinates.Count; ++i)
         {
             vectorString = vectorString + "(" + roomCoordinates[i].x + ", " + roomCoordinates[i].y + ") ";
         }
-        Debug.Log("Full path till freeze: " + vectorString);
+        Debug.Log("Full path till freeze: " + vectorString); */
         alarm = false;
-        if(neighbours >= 6 && !isThereRoomLeft)
+        if(((neighbours >= 6 && !forking) || (neighbours >= 4 && forking)) && !isThereRoomLeft)
             return true;
         else
             return false;
