@@ -103,28 +103,29 @@ public class TilemapGen : MonoBehaviour
         Vector3Int intersectionCoord = new Vector3Int((int)coord.x-rightBound-offsetBetweenRooms, (int)coord.y, 0);
         Vector3Int checkCoord = new Vector3Int(intersectionCoord.x-offsetBetweenRooms, intersectionCoord.y, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
-            Intersection(intersectionCoord);
+            Intersection(intersectionCoord, "left");
 
         // Right
         intersectionCoord = new Vector3Int((int)coord.x+rightBound+offsetBetweenRooms, (int)coord.y, 0);
         checkCoord = new Vector3Int(intersectionCoord.x+offsetBetweenRooms, intersectionCoord.y, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
-            Intersection(intersectionCoord);
+            Intersection(intersectionCoord, "right");
 
         // Bottom
         intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y-topBound-offsetBetweenRooms, 0);
         checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y-offsetBetweenRooms, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
-            Intersection(intersectionCoord);
+            Intersection(intersectionCoord, "bottom");
 
         // Top
         intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y+topBound+offsetBetweenRooms, 0);
         checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y+offsetBetweenRooms, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
-            Intersection(intersectionCoord);
+            Intersection(intersectionCoord, "top");
     }
 
-    private void Intersection(Vector3Int coord)
+    // Ufff I'm not proud of this... Will change if the intersection size will be a variable.
+    private void Intersection(Vector3Int coord, string where)
     {
         for(int x = coord.x-1; x <= coord.x+1; ++x)
         {
@@ -133,6 +134,49 @@ public class TilemapGen : MonoBehaviour
                 groundTilemap.SetTile(new Vector3Int(x, y, 0), groundTile);
             }
         }
+        
+        if(where == "left" || where == "right")
+        {
+            Vector3Int pos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y, 0);
+            Vector3Int minusPos = new Vector3Int(pos.x, pos.y-1, 0);
+            Vector3Int plusPos = new Vector3Int(pos.x, pos.y+1, 0);
+            Vector3Int pos2 = new Vector3Int(coord.x+offsetBetweenRooms, coord.y, 0);
+            Vector3Int minusPos2 = new Vector3Int(pos2.x, pos.y-1, 0);
+            Vector3Int plusPos2 = new Vector3Int(pos2.x, pos.y+1, 0);
+            wallTilemap.SetTile(pos, null);
+            wallTilemap.SetTile(minusPos, null);
+            wallTilemap.SetTile(plusPos, null);
+            wallTilemap.SetTile(pos2, null);
+            wallTilemap.SetTile(minusPos2, null);
+            wallTilemap.SetTile(plusPos2, null);
+            groundTilemap.SetTile(pos, groundTile);
+            groundTilemap.SetTile(minusPos, groundTile);
+            groundTilemap.SetTile(plusPos, groundTile);
+            groundTilemap.SetTile(pos2, groundTile);
+            groundTilemap.SetTile(minusPos2, groundTile);
+            groundTilemap.SetTile(plusPos2, groundTile);            
+        } else if(where == "bottom" || where == "top")
+        {
+            Vector3Int pos = new Vector3Int(coord.x, coord.y-offsetBetweenRooms, 0);
+            Vector3Int minusPos = new Vector3Int(pos.x-1, pos.y, 0);
+            Vector3Int plusPos = new Vector3Int(pos.x+1, pos.y, 0);
+            Vector3Int pos2 = new Vector3Int(coord.x, coord.y+offsetBetweenRooms, 0);
+            Vector3Int minusPos2 = new Vector3Int(pos2.x-1, pos2.y, 0);
+            Vector3Int plusPos2 = new Vector3Int(pos2.x+1, pos2.y, 0);
+            wallTilemap.SetTile(pos, null);
+            wallTilemap.SetTile(minusPos, null);
+            wallTilemap.SetTile(plusPos, null);
+            wallTilemap.SetTile(pos2, null);
+            wallTilemap.SetTile(minusPos2, null);
+            wallTilemap.SetTile(plusPos2, null);
+            groundTilemap.SetTile(pos, groundTile);
+            groundTilemap.SetTile(minusPos, groundTile);
+            groundTilemap.SetTile(plusPos, groundTile);
+            groundTilemap.SetTile(pos2, groundTile);
+            groundTilemap.SetTile(minusPos2, groundTile);
+            groundTilemap.SetTile(plusPos2, groundTile);
+        }
+
     }
 
     // Checks if a tile at a given position should be a corner, returns a boolean as well as returns how it should be rotated.

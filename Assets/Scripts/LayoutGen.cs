@@ -19,7 +19,7 @@ public class LayoutGen : MonoBehaviour
 
     private void Start()
     {
-        GenerateLayout(15);
+        GenerateLayout(200);
         GenerateForks();
         TilemapGen.instance.Generate(roomCoordinates);
     }
@@ -80,7 +80,7 @@ public class LayoutGen : MonoBehaviour
                 Vector2 newCoord = GiveCoordinate(coord);
                 if(newCoord == coord)
                 {
-                    /* Debug.Log("Cannot give that coordinate.");
+                    /* Debug.Log("Cannot give that coordinate." + " Alarm is set to " + alarm);
                     string vectorString = string.Empty;
                     for(int i = 0; i < roomCoordinates.Count; ++i)
                     {
@@ -157,14 +157,15 @@ public class LayoutGen : MonoBehaviour
         checkCoord = new Vector2(coord.x, coord.y+1);
         CheckDirection(checkCoord);
 
-        if(((neighbours == 3) || neighbours == 2) && !alarm)
+        if((neighbours >= 2) && !alarm)
         {
-           /*  Debug.Log("ALARM IS SET OFF ON COORD x: " + checkCoord.x + ", y: " + checkCoord.y); */
+            /* Debug.Log("ALARM IS SET OFF ON COORD x: " + checkCoord.x + ", y: " + checkCoord.y); */
             alarm = true;
             if(CheckDeadend(currentCoord))
             {
-                /* Debug.Log("EXIT CONDITION DETECTED"); */
+                Debug.Log("EXIT CONDITION DETECTED");
                 exitCondition = true;
+                alarm = false;
             }
         }
 
