@@ -15,11 +15,11 @@ public class LayoutGen : MonoBehaviour
     private int neighbours;
     [Space]
     [Header("For testing")]
-    [SerializeField] private GameObject square;
+    [SerializeField] private int primaryLength;
 
     private void Start()
     {
-        GenerateLayout(200);
+        GenerateLayout(primaryLength);
         GenerateForks();
         TilemapGen.instance.Generate(roomCoordinates);
     }
@@ -241,12 +241,4 @@ public class LayoutGen : MonoBehaviour
         return false;
     }
 
-    // For testing purposes to visualize how the generated map looks like.
-    private void Visualize()
-    {
-        foreach(Vector2 coord in roomCoordinates)
-        {
-            Instantiate(square, coord, Quaternion.identity);
-        }
-    }
 }

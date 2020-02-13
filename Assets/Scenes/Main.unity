@@ -357,7 +357,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   forkingChance: 60
   forkingDiminishing: 1.5
-  square: {fileID: 7941667155896648078, guid: 1cba01fbebeb8a9968caa70c5be20541, type: 3}
+  primaryLength: 5
 --- !u!4 &1283667813
 Transform:
   m_ObjectHideFlags: 0
