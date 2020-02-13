@@ -154,7 +154,34 @@ public class TilemapGen : MonoBehaviour
             groundTilemap.SetTile(plusPos, groundTile);
             groundTilemap.SetTile(pos2, groundTile);
             groundTilemap.SetTile(minusPos2, groundTile);
-            groundTilemap.SetTile(plusPos2, groundTile);            
+            groundTilemap.SetTile(plusPos2, groundTile);
+
+            // Walls
+            for(int i = coord.x-1; i <= coord.x+1; ++i)
+            {
+                wallTilemap.SetTile(new Vector3Int(i, coord.y+2, 0), straightTileSides);
+                wallTilemap.SetTile(new Vector3Int(i, coord.y-2, 0), straightTileSides);
+                if(i == coord.x+1)
+                {
+                    Vector3Int tilePos = new Vector3Int(coord.x-2, coord.y-2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileTop);
+                    groundTilemap.SetTile(tilePos, groundTile);
+
+                    tilePos = new Vector3Int(coord.x+2, coord.y-2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileTop);
+                    Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
+                    wallTilemap.SetTransformMatrix(tilePos, matrix);
+                    groundTilemap.SetTile(tilePos, groundTile);
+
+                    tilePos = new Vector3Int(coord.x-2, coord.y+2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileSides);
+
+                    tilePos = new Vector3Int(coord.x+2, coord.y+2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileSides);
+                    matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
+                    wallTilemap.SetTransformMatrix(tilePos, matrix);
+                }
+            }               
         } else if(where == "bottom" || where == "top")
         {
             Vector3Int pos = new Vector3Int(coord.x, coord.y-offsetBetweenRooms, 0);
@@ -175,6 +202,33 @@ public class TilemapGen : MonoBehaviour
             groundTilemap.SetTile(pos2, groundTile);
             groundTilemap.SetTile(minusPos2, groundTile);
             groundTilemap.SetTile(plusPos2, groundTile);
+
+            // Walls
+            for(int i = coord.y-1; i <= coord.y+1; ++i)
+            {
+                wallTilemap.SetTile(new Vector3Int(coord.x+2, i, 0), straightTileTop);
+                wallTilemap.SetTile(new Vector3Int(coord.x-2, i, 0), straightTileTop);
+                if(i == coord.y+1)
+                {
+                    Vector3Int tilePos = new Vector3Int(coord.x-2, coord.y-2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileSides);
+                    Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
+                    wallTilemap.SetTransformMatrix(tilePos, matrix);
+
+                    tilePos = new Vector3Int(coord.x+2, coord.y-2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileSides);
+
+                    tilePos = new Vector3Int(coord.x-2, coord.y+2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileTop);
+                    matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
+                    wallTilemap.SetTransformMatrix(tilePos, matrix);
+                    groundTilemap.SetTile(tilePos, groundTile);
+
+                    tilePos = new Vector3Int(coord.x+2, coord.y+2, 0);
+                    wallTilemap.SetTile(tilePos, cornerTileTop);
+                    groundTilemap.SetTile(tilePos, groundTile);
+                }
+            }
         }
 
     }
