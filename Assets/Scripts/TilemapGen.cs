@@ -6,7 +6,9 @@ using UnityEngine.Tilemaps;
 public class TilemapGen : MonoBehaviour
 {
     [HideInInspector] public static TilemapGen instance;
+    [Header("Only odd numbers for intersection width to retain symmetry")]
     [SerializeField] private int offsetBetweenRooms;
+    [SerializeField] private int intersectionWidth;
     [Space]
     [SerializeField] private Tilemap wallTilemap;
     [SerializeField] private Tilemap groundTilemap;
@@ -130,124 +132,98 @@ public class TilemapGen : MonoBehaviour
     // Ufff I'm not proud of this... Will change if the intersection size will be a variable.
     private void Intersection(Vector3Int coord, string where)
     {
-        for(int x = coord.x-1; x <= coord.x+1; ++x)
-        {
-            for(int y = coord.y-1; y <= coord.y+1; ++y)
-            {
-                Vector3Int tilePos = new Vector3Int(x, y, 0);
-                groundTilemap.SetTile(tilePos, groundTile);
-                transparentTilemap.SetTile(tilePos, gridTile);
-            }
-        }
-        
+        int stepLength = (int)Mathf.Floor(offsetBetweenRooms/2);
+        int stepWidth = (int)Mathf.Floor(intersectionWidth/2);
+        int doubleStepWidth = stepWidth*2-1; // I have to get better at naming.
+
+        // Left / Right intersection generation.
         if(where == "left" || where == "right")
         {
-            Vector3Int pos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y, 0);
-            Vector3Int minusPos = new Vector3Int(pos.x, pos.y-1, 0);
-            Vector3Int plusPos = new Vector3Int(pos.x, pos.y+1, 0);
-            Vector3Int pos2 = new Vector3Int(coord.x+offsetBetweenRooms, coord.y, 0);
-            Vector3Int minusPos2 = new Vector3Int(pos2.x, pos.y-1, 0);
-            Vector3Int plusPos2 = new Vector3Int(pos2.x, pos.y+1, 0);
-            wallTilemap.SetTile(pos, null);
-            wallTilemap.SetTile(minusPos, null);
-            wallTilemap.SetTile(plusPos, null);
-            wallTilemap.SetTile(pos2, null);
-            wallTilemap.SetTile(minusPos2, null);
-            wallTilemap.SetTile(plusPos2, null);
-            groundTilemap.SetTile(pos, groundTile);;
-            groundTilemap.SetTile(minusPos, groundTile);
-            groundTilemap.SetTile(plusPos, groundTile);
-            groundTilemap.SetTile(pos2, groundTile);
-            groundTilemap.SetTile(minusPos2, groundTile);
-            groundTilemap.SetTile(plusPos2, groundTile);
-
-            transparentTilemap.SetTile(pos, gridTile);
-            transparentTilemap.SetTile(minusPos, gridTile);
-            transparentTilemap.SetTile(plusPos, gridTile);
-            transparentTilemap.SetTile(pos2, gridTile);
-            transparentTilemap.SetTile(minusPos2, gridTile);
-            transparentTilemap.SetTile(plusPos2, gridTile);
-
-            // Walls
-            for(int i = coord.x-1; i <= coord.x+1; ++i)
+            for(int x = coord.x-offsetBetweenRooms; x <= coord.x+offsetBetweenRooms; ++x)
             {
-                wallTilemap.SetTile(new Vector3Int(i, coord.y+2, 0), straightTileSides);
-                wallTilemap.SetTile(new Vector3Int(i, coord.y-2, 0), straightTileSides);
-                if(i == coord.x+1)
+                for(int y = coord.y-stepWidth; y <= coord.y+stepWidth; ++y)
                 {
-                    Vector3Int tilePos = new Vector3Int(coord.x-2, coord.y-2, 0);
+                    Vector3Int tilePos = new Vector3Int(x, y, 0);
+                    groundTilemap.SetTile(tilePos, groundTile);
+                    transparentTilemap.SetTile(tilePos, gridTile);
+
+                    if(x == coord.x-offsetBetweenRooms || x == coord.x+offsetBetweenRooms)
+                    {
+                        wallTilemap.SetTile(tilePos, null);
+                    }
+                }
+            }
+
+            for(int i = coord.x-offsetBetweenRooms; i <= coord.x+offsetBetweenRooms; ++i)
+            {
+                wallTilemap.SetTile(new Vector3Int(i, coord.y+stepWidth, 0), straightTileSides);
+                wallTilemap.SetTile(new Vector3Int(i, coord.y-stepWidth, 0), straightTileSides);
+                if(i == coord.x+offsetBetweenRooms)
+                {
+                    Vector3Int tilePos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y-stepWidth, 0);
                     wallTilemap.SetTile(tilePos, cornerTileTop);
                     groundTilemap.SetTile(tilePos, groundTile);
 
-                    tilePos = new Vector3Int(coord.x+2, coord.y-2, 0);
+                    tilePos = new Vector3Int(coord.x+offsetBetweenRooms, coord.y-stepWidth, 0);
                     wallTilemap.SetTile(tilePos, cornerTileTop);
                     Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
                     wallTilemap.SetTransformMatrix(tilePos, matrix);
                     groundTilemap.SetTile(tilePos, groundTile);
 
-                    tilePos = new Vector3Int(coord.x-2, coord.y+2, 0);
+                    tilePos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y+stepWidth, 0);
                     wallTilemap.SetTile(tilePos, cornerTileSides);
 
-                    tilePos = new Vector3Int(coord.x+2, coord.y+2, 0);
+                    tilePos = new Vector3Int(coord.x+offsetBetweenRooms, coord.y+stepWidth, 0);
                     wallTilemap.SetTile(tilePos, cornerTileSides);
                     matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
                     wallTilemap.SetTransformMatrix(tilePos, matrix);
                 }
             }               
-        } else if(where == "bottom" || where == "top")
+
+        } 
+        // Top / Bottom intersection generation.
+        else if(where == "bottom" || where == "top")
         {
-            Vector3Int pos = new Vector3Int(coord.x, coord.y-offsetBetweenRooms, 0);
-            Vector3Int minusPos = new Vector3Int(pos.x-1, pos.y, 0);
-            Vector3Int plusPos = new Vector3Int(pos.x+1, pos.y, 0);
-            Vector3Int pos2 = new Vector3Int(coord.x, coord.y+offsetBetweenRooms, 0);
-            Vector3Int minusPos2 = new Vector3Int(pos2.x-1, pos2.y, 0);
-            Vector3Int plusPos2 = new Vector3Int(pos2.x+1, pos2.y, 0);
-            wallTilemap.SetTile(pos, null);
-            wallTilemap.SetTile(minusPos, null);
-            wallTilemap.SetTile(plusPos, null);
-            wallTilemap.SetTile(pos2, null);
-            wallTilemap.SetTile(minusPos2, null);
-            wallTilemap.SetTile(plusPos2, null);
-            groundTilemap.SetTile(pos, groundTile);
-            groundTilemap.SetTile(minusPos, groundTile);
-            groundTilemap.SetTile(plusPos, groundTile);
-            groundTilemap.SetTile(pos2, groundTile);
-            groundTilemap.SetTile(minusPos2, groundTile);
-            groundTilemap.SetTile(plusPos2, groundTile);
-
-            transparentTilemap.SetTile(pos, gridTile);
-            transparentTilemap.SetTile(minusPos, gridTile);
-            transparentTilemap.SetTile(plusPos, gridTile);
-            transparentTilemap.SetTile(pos2, gridTile);
-            transparentTilemap.SetTile(minusPos2, gridTile);
-            transparentTilemap.SetTile(plusPos2, gridTile);
-
-            // Walls
-            for(int i = coord.y-1; i <= coord.y+1; ++i)
+            for(int x = coord.x-stepWidth; x <= coord.x+stepWidth; ++x)
             {
-                wallTilemap.SetTile(new Vector3Int(coord.x+2, i, 0), straightTileTop);
-                wallTilemap.SetTile(new Vector3Int(coord.x-2, i, 0), straightTileTop);
-                if(i == coord.y+1)
+                for(int y = coord.y-offsetBetweenRooms; y <= coord.y+offsetBetweenRooms; ++y)
                 {
-                    Vector3Int tilePos = new Vector3Int(coord.x-2, coord.y-2, 0);
+                    Vector3Int tilePos = new Vector3Int(x, y, 0);
+                    groundTilemap.SetTile(tilePos, groundTile);
+                    transparentTilemap.SetTile(tilePos, gridTile);
+
+                    if(y == coord.y-offsetBetweenRooms || y == coord.y+offsetBetweenRooms)
+                    {
+                        wallTilemap.SetTile(tilePos, null);
+                    }
+                }
+            }
+            for(int i = coord.y-offsetBetweenRooms; i <= coord.y+offsetBetweenRooms; ++i)
+            {
+                wallTilemap.SetTile(new Vector3Int(coord.x+stepWidth, i, 0), straightTileTop);
+                wallTilemap.SetTile(new Vector3Int(coord.x-stepWidth, i, 0), straightTileTop);
+                if(i == coord.y+offsetBetweenRooms)
+                {
+                    Vector3Int tilePos = new Vector3Int(coord.x-stepWidth, coord.y-offsetBetweenRooms, 0);
                     wallTilemap.SetTile(tilePos, cornerTileSides);
                     Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
                     wallTilemap.SetTransformMatrix(tilePos, matrix);
 
-                    tilePos = new Vector3Int(coord.x+2, coord.y-2, 0);
+                    tilePos = new Vector3Int(coord.x+stepWidth, coord.y-offsetBetweenRooms, 0);
                     wallTilemap.SetTile(tilePos, cornerTileSides);
 
-                    tilePos = new Vector3Int(coord.x-2, coord.y+2, 0);
+                    tilePos = new Vector3Int(coord.x-stepWidth, coord.y+offsetBetweenRooms, 0);
                     wallTilemap.SetTile(tilePos, cornerTileTop);
                     matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
                     wallTilemap.SetTransformMatrix(tilePos, matrix);
                     groundTilemap.SetTile(tilePos, groundTile);
 
-                    tilePos = new Vector3Int(coord.x+2, coord.y+2, 0);
+                    tilePos = new Vector3Int(coord.x+stepWidth, coord.y+offsetBetweenRooms, 0);
                     wallTilemap.SetTile(tilePos, cornerTileTop);
                     groundTilemap.SetTile(tilePos, groundTile);
                 }
             }
+            
         }
 
     }

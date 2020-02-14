@@ -1158,7 +1158,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6ab055b7d453a18ca42c5ecfb7b0d14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  offsetBetweenRooms: 2
+  offsetBetweenRooms: 20
+  intersectionWidth: 15
   wallTilemap: {fileID: 1000378900}
   groundTilemap: {fileID: 1557125757}
   transparentTilemap: {fileID: 1478503200}
