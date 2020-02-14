@@ -10,12 +10,14 @@ public class TilemapGen : MonoBehaviour
     [Space]
     [SerializeField] private Tilemap wallTilemap;
     [SerializeField] private Tilemap groundTilemap;
+    [SerializeField] private Tilemap transparentTilemap;
     [Space]
     [SerializeField] private Tile straightTileTop;
     [SerializeField] private Tile straightTileSides;
     [SerializeField] private Tile cornerTileSides;
     [SerializeField] private Tile cornerTileTop;
     [SerializeField] private Tile groundTile;
+    [SerializeField] private Tile gridTile;
     [Space]
     [SerializeField] private int leftBound;
     [SerializeField] private int rightBound;
@@ -51,6 +53,7 @@ public class TilemapGen : MonoBehaviour
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 groundTilemap.SetTile(tilePos, groundTile);
+                transparentTilemap.SetTile(tilePos, gridTile);
             }
         }
     }
@@ -131,7 +134,9 @@ public class TilemapGen : MonoBehaviour
         {
             for(int y = coord.y-1; y <= coord.y+1; ++y)
             {
-                groundTilemap.SetTile(new Vector3Int(x, y, 0), groundTile);
+                Vector3Int tilePos = new Vector3Int(x, y, 0);
+                groundTilemap.SetTile(tilePos, groundTile);
+                transparentTilemap.SetTile(tilePos, gridTile);
             }
         }
         
@@ -149,12 +154,19 @@ public class TilemapGen : MonoBehaviour
             wallTilemap.SetTile(pos2, null);
             wallTilemap.SetTile(minusPos2, null);
             wallTilemap.SetTile(plusPos2, null);
-            groundTilemap.SetTile(pos, groundTile);
+            groundTilemap.SetTile(pos, groundTile);;
             groundTilemap.SetTile(minusPos, groundTile);
             groundTilemap.SetTile(plusPos, groundTile);
             groundTilemap.SetTile(pos2, groundTile);
             groundTilemap.SetTile(minusPos2, groundTile);
             groundTilemap.SetTile(plusPos2, groundTile);
+
+            transparentTilemap.SetTile(pos, gridTile);
+            transparentTilemap.SetTile(minusPos, gridTile);
+            transparentTilemap.SetTile(plusPos, gridTile);
+            transparentTilemap.SetTile(pos2, gridTile);
+            transparentTilemap.SetTile(minusPos2, gridTile);
+            transparentTilemap.SetTile(plusPos2, gridTile);
 
             // Walls
             for(int i = coord.x-1; i <= coord.x+1; ++i)
@@ -202,6 +214,13 @@ public class TilemapGen : MonoBehaviour
             groundTilemap.SetTile(pos2, groundTile);
             groundTilemap.SetTile(minusPos2, groundTile);
             groundTilemap.SetTile(plusPos2, groundTile);
+
+            transparentTilemap.SetTile(pos, gridTile);
+            transparentTilemap.SetTile(minusPos, gridTile);
+            transparentTilemap.SetTile(plusPos, gridTile);
+            transparentTilemap.SetTile(pos2, gridTile);
+            transparentTilemap.SetTile(minusPos2, gridTile);
+            transparentTilemap.SetTile(plusPos2, gridTile);
 
             // Walls
             for(int i = coord.y-1; i <= coord.y+1; ++i)

@@ -5,15 +5,18 @@ using UnityEngine.Tilemaps;
 
 public class MovementGrid : MonoBehaviour
 {
+    [SerializeField] private Camera mainCamera;
+    [Space]
     [SerializeField] private Tile gridTile;
     [SerializeField] private Tilemap wallTilemap;
     [SerializeField] private Tilemap groundTilemap;
     [SerializeField] private Tilemap grid;
     [Space]
     [SerializeField] private int gridLength;
-    
+    [SerializeField] private Color mouseTintColor;
 
     private GameObject crosshair;
+    private Vector3Int tempTilePos;
 
     // Start is called before the first frame update
     void Start()
@@ -24,10 +27,23 @@ public class MovementGrid : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        MouseInGrid();
         if(Input.GetKeyDown(KeyCode.G))
         {
             Vector3Int crosshairPos = new Vector3Int((int)Mathf.Floor(crosshair.transform.position.x), (int)Mathf.Floor(crosshair.transform.position.y), 0);
             GenerateGrid(crosshairPos);
+        }
+    }
+
+    private void MouseInGrid()
+    {
+        Vector3 mousePos = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, mainCamera.transform.position.z));
+        Vector3Int precisePos = new Vector3Int((int)Mathf.Ceil(mousePos.x)*-1, (int)Mathf.Ceil(mousePos.y-2f)*-1, 0);
+        if(groundTilemap.HasTile(precisePos))
+        {
+            groundTilemap.SetColor(tempTilePos, Color.white);
+            groundTilemap.SetColor(precisePos, mouseTintColor);
+            tempTilePos = precisePos;
         }
     }
 
@@ -91,5 +107,14 @@ public class MovementGrid : MonoBehaviour
             }
             counter -= 2;
         }
+    }
+
+    private List<Vector3Int> Pathfinding(Vector3Int coord)
+    {
+        List<Vector3Int> path = new List<Vector3Int>();
+
+        
+        
+        return path;
     }
 }
