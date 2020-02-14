@@ -596,9 +596,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6e8b6a39ff18d907a9de24e6bb1b331, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  forkingChance: 60
-  forkingDiminishing: 1.5
-  primaryLength: 5
+  forkingChance: 90
+  forkingDiminishing: 1.1
+  primaryLength: 15
 --- !u!4 &1283667813
 Transform:
   m_ObjectHideFlags: 0
