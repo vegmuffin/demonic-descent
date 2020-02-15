@@ -19,8 +19,11 @@ public class LayoutGen : MonoBehaviour
 
     private void Start()
     {
+        // First it generates the primary layout (a single path)
         GenerateLayout(primaryLength);
+        // Then it tries to generate random branches from the above made path
         GenerateForks();
+        // Based on the layout that we generated, it generates all the tiles
         TilemapGen.instance.Generate(roomCoordinates);
     }
 
@@ -36,13 +39,7 @@ public class LayoutGen : MonoBehaviour
             Vector2 newCoord = GiveCoordinate(currentCoord);
             if(newCoord == currentCoord)
             {
-                /* Debug.Log("Cannot give that coordinate.");
-                string vectorString = string.Empty;
-                for(int i = 0; i < roomCoordinates.Count; ++i)
-                {
-                    vectorString = vectorString + "(" + roomCoordinates[i].x + ", " + roomCoordinates[i].y + ") ";
-                }
-                Debug.Log("Full path: " + vectorString); */
+                
                 continue;
             }
             currentCoord = newCoord;
@@ -80,13 +77,6 @@ public class LayoutGen : MonoBehaviour
                 Vector2 newCoord = GiveCoordinate(coord);
                 if(newCoord == coord)
                 {
-                    /* Debug.Log("Cannot give that coordinate." + " Alarm is set to " + alarm);
-                    string vectorString = string.Empty;
-                    for(int i = 0; i < roomCoordinates.Count; ++i)
-                    {
-                        vectorString = vectorString + "(" + roomCoordinates[i].x + ", " + roomCoordinates[i].y + ") ";
-                    }
-                    Debug.Log("Full path: " + vectorString); */
                     continue;
                 }
 
@@ -98,31 +88,35 @@ public class LayoutGen : MonoBehaviour
         }
     }
 
-    // Give a coordinate to expand to.
+    // Give a random coordinate (left/right/bottom/top) coordinate to expand to.
     private Vector2 GiveCoordinate(Vector2 currentCoord)
     {
         int randomCoord = Random.Range(1, 5);
         Vector2 coordToGive = currentCoord;
         switch(randomCoord)
         {
+            // Left
             case 1:
                 Vector2 leftCoord = new Vector2(currentCoord.x-1, currentCoord.y);
                 if(!ContainsCoord(leftCoord))
                     if(TryCoordinate(leftCoord, currentCoord))
                         coordToGive = leftCoord;
                 break;
+            // Right
             case 2:
                 Vector2 rightCoord = new Vector2(currentCoord.x+1, currentCoord.y);
                 if(!ContainsCoord(rightCoord))
                     if(TryCoordinate(rightCoord, currentCoord))
                         coordToGive = rightCoord;
                 break;
+            // Bottom
             case 3:
                 Vector2 bottomCoord = new Vector2(currentCoord.x, currentCoord.y-1);
                 if(!ContainsCoord(bottomCoord))
                     if(TryCoordinate(bottomCoord, currentCoord))
                         coordToGive = bottomCoord;
                 break;
+            // Top
             case 4:
                 Vector2 topCoord = new Vector2(currentCoord.x, currentCoord.y+1);
                 if(!ContainsCoord(topCoord))
@@ -136,6 +130,8 @@ public class LayoutGen : MonoBehaviour
     // Can we expand in the given coordinate?
     private bool TryCoordinate(Vector2 coord, Vector2 currentCoord)
     {
+        // The future room should only have one neighbour, the one we branched out from. Checking all directions.
+
         if(!alarm)
             neighbours = 0;
         
@@ -157,9 +153,9 @@ public class LayoutGen : MonoBehaviour
         checkCoord = new Vector2(coord.x, coord.y+1);
         CheckDirection(checkCoord);
 
+        // If there are more neighbours, we have to check if we reached a dead-end, otherwise it will try random coordinates with no avail.
         if((neighbours >= 2) && !alarm)
         {
-            /* Debug.Log("ALARM IS SET OFF ON COORD x: " + checkCoord.x + ", y: " + checkCoord.y); */
             alarm = true;
             if(CheckDeadend(currentCoord))
             {
@@ -185,6 +181,8 @@ public class LayoutGen : MonoBehaviour
     {
         neighbours = 0;
         int tempNeighbours = 0;
+
+        // Sometimes the amount of neighbours is vast but there is still room to expand, this bool tells us whether there is room to expand to.
         bool isThereRoomLeft = false;
 
         // Left
@@ -219,12 +217,6 @@ public class LayoutGen : MonoBehaviour
         if(neighbours - tempNeighbours == 1)
             isThereRoomLeft = true;
 
-        /* string vectorString = string.Empty;
-        for(int i = 0; i < roomCoordinates.Count; ++i)
-        {
-            vectorString = vectorString + "(" + roomCoordinates[i].x + ", " + roomCoordinates[i].y + ") ";
-        }
-        Debug.Log("Full path till freeze: " + vectorString); */
         alarm = false;
         if(((neighbours >= 6 && !forking) || (neighbours >= 4 && forking)) && !isThereRoomLeft)
             return true;

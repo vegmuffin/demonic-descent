@@ -35,6 +35,7 @@ public class MovementGrid : MonoBehaviour
         }
     }
 
+    // Paints the tile on which the mouse is hovering.
     private void MouseInGrid()
     {
         Vector3 mousePos = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, mainCamera.transform.position.z));
@@ -53,15 +54,14 @@ public class MovementGrid : MonoBehaviour
         // Clearing previous tiles
         grid.ClearAllTiles();
 
+        // How long should the grid be (across)
         int maxGridLength = gridLength*2;
-        List<int> possibleValues = new List<int>();
-        for(int i = -gridLength; i < maxGridLength; ++i)
-            possibleValues.Add(i);
 
-        int counter = 1;
+        // Creating the top and then the bottom of the diamond by constantly increasing/decreasing the amount of tiles to spawn.
+        int tileCount = 1;
         for(int i = -gridLength; i <= 0; ++i)
         {
-            if(counter == 1)
+            if(tileCount == 1)
             {
                 Vector3Int tilePos = new Vector3Int(coord.x, coord.y+gridLength, 0);
                 if(!wallTilemap.HasTile(tilePos))
@@ -70,7 +70,7 @@ public class MovementGrid : MonoBehaviour
             }      
             else
             {
-                int step = (counter-1)/2;
+                int step = (tileCount-1)/2;
                 int yCoord = coord.y+Mathf.Abs(i);
                 for(int j = -step; j <= step; ++j)
                 {
@@ -81,12 +81,12 @@ public class MovementGrid : MonoBehaviour
                 }
             }
             
-            counter += 2;
+            tileCount += 2;
         }
-        counter -= 4;
+        tileCount -= 4;
         for(int i = -1; i >= -gridLength; --i)
         {
-            if(counter == 1)
+            if(tileCount == 1)
             {
                 Vector3Int tilePos = new Vector3Int(coord.x, coord.y-gridLength, 0);
                 if(!wallTilemap.HasTile(tilePos))
@@ -95,7 +95,7 @@ public class MovementGrid : MonoBehaviour
             }
             else
             {
-                int step = (counter-1)/2;
+                int step = (tileCount-1)/2;
                 int yCoord = coord.y-Mathf.Abs(i);
                 for(int j = -step; j <= step; ++j)
                 {
@@ -105,10 +105,11 @@ public class MovementGrid : MonoBehaviour
                             grid.SetTile(tilePos, gridTile);
                 }
             }
-            counter -= 2;
+            tileCount -= 2;
         }
     }
 
+    // A* Pathfinding TODO
     private List<Vector3Int> Pathfinding(Vector3Int coord)
     {
         List<Vector3Int> path = new List<Vector3Int>();
