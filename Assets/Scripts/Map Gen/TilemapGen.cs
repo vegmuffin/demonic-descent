@@ -26,7 +26,6 @@ public class TilemapGen : MonoBehaviour
     [SerializeField] private int topBound;
     [SerializeField] private int bottomBound;
 
-
     private void Awake()
     {
         instance = this;
@@ -34,6 +33,12 @@ public class TilemapGen : MonoBehaviour
 
     public void Generate(List<Vector2> map)
     {
+        // For pathfinding grid generation.
+        int startX = 0;
+        int startY = 0;
+        int endX = 0;
+        int endY = 0;
+
         foreach(Vector2 coord in map)
         {
             // Since the layout is generated on a 1x1 scale, we have to expand the actual coordinates to fit our room needs.
@@ -43,7 +48,25 @@ public class TilemapGen : MonoBehaviour
             GenerateGround(expandedCoord);
             GenerateWalls(expandedCoord);
             GenerateIntersections(expandedCoord);
+
+            // Expanded coordinate bounds
+            int expCoordMinX = expandedCoord.x - rightBound - 1;
+            int expCoordMinY = expandedCoord.y - topBound - 1;
+            int expCoordMaxX = expandedCoord.x + rightBound + 1;
+            int expCoordMaxY = expandedCoord.x + topBound + 1;
+
+            // Checking if we have update our min / max values.
+            if(expCoordMinX < startX)
+                startX = expCoordMinX;
+            if(expCoordMinY < startY)
+                startY = expCoordMinY;
+            if(expCoordMaxX > endX)
+                endX = expCoordMaxX;
+            if(expCoordMaxY > endY)
+                endY = expCoordMaxY;
         }
+
+        MovementGrid.instance.PopulateGrid(startX, startY, endX, endY);
     }
 
     private void GenerateGround(Vector2Int coord)

@@ -198,9 +198,10 @@ MonoBehaviour:
   gridTile: {fileID: 11400000, guid: 0a0c075f030edee17a5f2ef2162a17e5, type: 2}
   wallTilemap: {fileID: 1000378900}
   groundTilemap: {fileID: 1557125757}
-  grid: {fileID: 883787883}
+  movementGrid: {fileID: 883787883}
   gridLength: 5
   mouseTintColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+  pathfindingColor: {r: 0.6886792, g: 0.6886792, b: 0.6886792, a: 1}
 --- !u!4 &295732646
 Transform:
   m_ObjectHideFlags: 0

@@ -159,7 +159,7 @@ public class LayoutGen : MonoBehaviour
             alarm = true;
             if(CheckDeadend(currentCoord))
             {
-                Debug.Log("EXIT CONDITION DETECTED");
+                //Debug.Log("EXIT CONDITION DETECTED");
                 exitCondition = true;
                 alarm = false;
             }
