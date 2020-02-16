@@ -19,16 +19,25 @@ public class TilemapGen : MonoBehaviour
     [SerializeField] private Tile cornerTileSides;
     [SerializeField] private Tile cornerTileTop;
     [SerializeField] private Tile groundTile;
-    [SerializeField] private Tile gridTile;
+    [SerializeField] private Tile transparentTile;
     [Space]
     [SerializeField] private int leftBound;
     [SerializeField] private int rightBound;
     [SerializeField] private int topBound;
     [SerializeField] private int bottomBound;
 
+    private int testX;
+    private int testY;
+
     private void Awake()
     {
         instance = this;
+    }
+
+    void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.T))
+            TestingPathfinding();
     }
 
     public void Generate(List<Vector2> map)
@@ -65,6 +74,8 @@ public class TilemapGen : MonoBehaviour
             if(expCoordMaxY > endY)
                 endY = expCoordMaxY;
         }
+        testX = startX;
+        testY = startY;
 
         MovementGrid.instance.PopulateGrid(startX, startY, endX, endY);
     }
@@ -82,7 +93,7 @@ public class TilemapGen : MonoBehaviour
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 groundTilemap.SetTile(tilePos, groundTile);
-                transparentTilemap.SetTile(tilePos, gridTile);
+                transparentTilemap.SetTile(tilePos, transparentTile);
             }
         }
     }
@@ -179,7 +190,7 @@ public class TilemapGen : MonoBehaviour
                     // Painting ground tiles
                     Vector3Int groundTilePos = new Vector3Int(x, y, 0);
                     groundTilemap.SetTile(groundTilePos, groundTile);
-                    transparentTilemap.SetTile(groundTilePos, gridTile);
+                    transparentTilemap.SetTile(groundTilePos, transparentTile);
 
                     // Eliminating walls that were previously generated. Easier to do than putting more confusing code into wall tilemap generation.
                     if(x == coord.x-offsetBetweenRooms || x == coord.x+offsetBetweenRooms)
@@ -223,7 +234,7 @@ public class TilemapGen : MonoBehaviour
                 {
                     Vector3Int groundTilePos = new Vector3Int(x, y, 0);
                     groundTilemap.SetTile(groundTilePos, groundTile);
-                    transparentTilemap.SetTile(groundTilePos, gridTile);
+                    transparentTilemap.SetTile(groundTilePos, transparentTile);
 
                     if(y == coord.y-offsetBetweenRooms || y == coord.y+offsetBetweenRooms)
                         wallTilemap.SetTile(groundTilePos, null);
@@ -286,6 +297,20 @@ public class TilemapGen : MonoBehaviour
         else
         {
             return false;
+        }
+    }
+
+    public void TestingPathfinding()
+    {
+        for(int x = -2; x <= 2; ++x)
+        {
+            Vector3Int tilePos = new Vector3Int(x, 2, 0);
+            int accessX = tilePos.x + Mathf.Abs(testX);
+            int accessY = tilePos.y + Mathf.Abs(testY);
+            GridNode node = MovementGrid.instance.pathfindingGrid[accessX, accessY];
+            node.isWalkable = false;
+            
+            wallTilemap.SetTile(tilePos, straightTileSides);
         }
     }
 

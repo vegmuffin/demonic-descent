@@ -9,13 +9,14 @@ public class MovementGrid : MonoBehaviour
 
     [SerializeField] private Camera mainCamera;
     [Space]
-    [SerializeField] private Tile gridTile;
+    [SerializeField] private Tile movementTile;
     [SerializeField] private Tilemap wallTilemap;
     [SerializeField] private Tilemap groundTilemap;
     [SerializeField] private Tilemap movementGrid;
     [Space]
-    [SerializeField] private int gridLength;
+    [SerializeField] private int speed;
     [SerializeField] private Color mouseTintColor;
+    [SerializeField] private Color availablePathColor;
     [SerializeField] private Color pathfindingColor;
 
     private GameObject crosshair;
@@ -23,12 +24,14 @@ public class MovementGrid : MonoBehaviour
     private Vector3Int tempTilePos;
 
     // For A* Pathfinding, to access the tile on the grid by index, add startX and startY
-    private GridNode[,] pathfindingGrid;
+    public GridNode[,] pathfindingGrid;
     private List<Vector3Int> pathfindingTiles = new List<Vector3Int>();
     private int gridStartX;
     private int gridStartY;
     private int distanceX;
     private int distanceY;
+
+    [SerializeField] private GameObject player;
 
     private void Awake()
     {
@@ -47,8 +50,12 @@ public class MovementGrid : MonoBehaviour
         MouseInGrid();
         if(Input.GetKeyDown(KeyCode.G))
         {
-            crosshairPos = new Vector3Int((int)Mathf.Floor(crosshair.transform.position.x), (int)Mathf.Floor(crosshair.transform.position.y), 0);
+            Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(player.transform.position.x), (int)Mathf.Floor(player.transform.position.y), 0);
             GenerateGrid(crosshairPos);
+        }
+        if(Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            player.GetComponent<UnitMovement>().MoveAlongPath(pathfindingTiles);
         }
     }
 
@@ -80,7 +87,7 @@ public class MovementGrid : MonoBehaviour
             tempTilePos = precisePos;
 
             // Pathfinding!
-            List<GridNode> pathToCoord = Pathfinding(crosshairPos, precisePos);
+            List<GridNode> pathToCoord = Pathfinding(crosshairPos, precisePos, speed);
             foreach(GridNode tile in pathToCoord)
             {
                 Vector3Int coord = new Vector3Int(tile.position.x, tile.position.y, 0);
@@ -99,18 +106,21 @@ public class MovementGrid : MonoBehaviour
         movementGrid.ClearAllTiles();
 
         // How long should the grid be (across)
-        int maxGridLength = gridLength*2;
+        int maxspeed = speed*2;
 
         // Creating the top and then the bottom of the diamond by constantly increasing/decreasing the amount of tiles to spawn.
         int tileCount = 1;
-        for(int i = -gridLength; i <= 0; ++i)
+        for(int i = -speed; i <= 0; ++i)
         {
             if(tileCount == 1)
             {
-                Vector3Int tilePos = new Vector3Int(coord.x, coord.y+gridLength, 0);
+                Vector3Int tilePos = new Vector3Int(coord.x, coord.y+speed, 0);
                 if(!wallTilemap.HasTile(tilePos))
                     if(groundTilemap.HasTile(tilePos))
-                        movementGrid.SetTile(tilePos, gridTile);
+                    {
+                        movementGrid.SetTile(tilePos, movementTile);
+                        movementGrid.SetColor(tilePos, availablePathColor);
+                    }   
             }      
             else
             {
@@ -121,21 +131,27 @@ public class MovementGrid : MonoBehaviour
                     Vector3Int tilePos = new Vector3Int(coord.x+j, yCoord, 0);
                     if(!wallTilemap.HasTile(tilePos))
                         if(groundTilemap.HasTile(tilePos))
-                            movementGrid.SetTile(tilePos, gridTile);
+                        {
+                            movementGrid.SetTile(tilePos, movementTile);
+                            movementGrid.SetColor(tilePos, availablePathColor);
+                        }   
                 }
             }
             
             tileCount += 2;
         }
         tileCount -= 4;
-        for(int i = -1; i >= -gridLength; --i)
+        for(int i = -1; i >= -speed; --i)
         {
             if(tileCount == 1)
             {
-                Vector3Int tilePos = new Vector3Int(coord.x, coord.y-gridLength, 0);
+                Vector3Int tilePos = new Vector3Int(coord.x, coord.y-speed, 0);
                 if(!wallTilemap.HasTile(tilePos))
                     if(groundTilemap.HasTile(tilePos))
-                        movementGrid.SetTile(tilePos, gridTile);
+                    {
+                        movementGrid.SetTile(tilePos, movementTile);
+                        movementGrid.SetColor(tilePos, availablePathColor);
+                    }   
             }
             else
             {
@@ -146,10 +162,28 @@ public class MovementGrid : MonoBehaviour
                     Vector3Int tilePos = new Vector3Int(coord.x+j, yCoord, 0);
                     if(!wallTilemap.HasTile(tilePos))
                         if(groundTilemap.HasTile(tilePos))
-                            movementGrid.SetTile(tilePos, gridTile);
+                        {
+                            movementGrid.SetTile(tilePos, movementTile);
+                            movementGrid.SetColor(tilePos, availablePathColor);
+                        }   
                 }
             }
             tileCount -= 2;
+        }
+
+        int startX = coord.x - speed;
+        int startY = coord.y - speed;
+        int endX = coord.x + speed;
+        int endY = coord.y + speed;
+        for(int x = startX; x <= endX; ++x)
+        {
+            for(int y = startY; y <= endY; ++y)
+            {
+                Vector3Int tilePos = new Vector3Int(x, y, 0);
+                List<GridNode> path = Pathfinding(coord, tilePos, speed);
+                if(path.Count == 0)
+                    movementGrid.SetTile(tilePos, null);
+            }
         }
     }
 
@@ -179,7 +213,7 @@ public class MovementGrid : MonoBehaviour
     }
 
     // A*
-    private List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord)
+    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed)
     {
         // Empty path.
         List<GridNode> path = new List<GridNode>();
@@ -205,10 +239,13 @@ public class MovementGrid : MonoBehaviour
         HashSet<GridNode> closedSet = new HashSet<GridNode>();
         openSet.Add(startNode);
 
+
         while(openSet.Count > 0)
         {
             GridNode currentNode = openSet[0];
             Vector3Int nodePos = new Vector3Int(currentNode.position.x, currentNode.position.y, 0);
+
+            //Debug.Log("Node position: " + endNode.position + ", is it walkable? " + endNode.isWalkable + ", fCost: " + endNode.fCost);
             
             for(int i = 0; i < openSet.Count; ++i)
             {
@@ -220,18 +257,25 @@ public class MovementGrid : MonoBehaviour
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode);
 
-                // If we have reached the end, we can safely retrace the path and exit.
+                // If we have reached the end, we can safely retrace the path and exit. Unless it exceeds our speed.
                 if(currentNode == endNode)
                 {
                     path = RetracePath(startNode, endNode);
-                    return path;
+
+                    int speedCounter = 0;
+                    foreach(GridNode node in path)
+                        ++speedCounter;
+                    if(speedCounter > gridSpeed)
+                        return new List<GridNode>();
+                    else
+                        return path;
                 }
 
                 // Getting all neighbours from our current node.
                 foreach(GridNode neighbour in GetNeighbours(currentNode))
                 {
                     // The node does not interest us if we already have evaluated it or if it's not even walkable.
-                    if(!neighbour.isWalkable || closedSet.Contains(neighbour))
+                    if(!neighbour.isWalkable || closedSet.Contains(neighbour) || !movementGrid.HasTile((Vector3Int)neighbour.position))
                     {
                         continue;
                     }
