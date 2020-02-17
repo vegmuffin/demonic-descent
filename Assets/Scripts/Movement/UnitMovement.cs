@@ -7,6 +7,9 @@ public class UnitMovement : MonoBehaviour
     private Transform tr;
     private float timer = 0f;
 
+    public int speed;
+    [HideInInspector] public int remainingMoves;
+
     private void Awake()
     {
         tr = transform;
@@ -24,15 +27,19 @@ public class UnitMovement : MonoBehaviour
         
     }
 
-    public void MoveAlongPath(List<Vector3Int> path)
+    public IEnumerator MoveAlongPath(List<Vector3Int> path)
     {
-        for(int i = 0; i < path.Count-1; ++i)
+        while(remainingMoves > 0)
         {
-            Vector2 currentPos = new Vector2(path[i].x, path[i].y);
-            Vector2 futurePos = new Vector2(path[i+1].x, path[i+1].y);
-
-            StartCoroutine(MoveLerp(currentPos, futurePos));
+            Vector2 futurePos = new Vector2(path[remainingMoves-1].x, path[remainingMoves-1].y);
+            --remainingMoves;
+            yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
+
+        remainingMoves = speed;
+        var temp = GameStateManager.instance.gameState;
+        GameStateManager.instance.gameState = GameStateManager.instance.previousGameState;
+        GameStateManager.instance.previousGameState = temp;
     }
 
     private IEnumerator MoveLerp(Vector2 startPos, Vector2 endPos)
@@ -41,7 +48,7 @@ public class UnitMovement : MonoBehaviour
         {
             tr.position = Vector2.Lerp(startPos, endPos, timer);
 
-            timer += Time.deltaTime;
+            timer += Time.deltaTime * MovementManager.instance.unitSpeed;
             if(timer >= 1f)
             {
                 timer = 0;

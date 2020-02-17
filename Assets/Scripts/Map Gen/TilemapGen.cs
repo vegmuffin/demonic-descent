@@ -77,7 +77,7 @@ public class TilemapGen : MonoBehaviour
         testX = startX;
         testY = startY;
 
-        MovementGrid.instance.PopulateGrid(startX, startY, endX, endY);
+        MovementManager.instance.PopulateGrid(startX, startY, endX, endY);
     }
 
     private void GenerateGround(Vector2Int coord)
@@ -307,7 +307,7 @@ public class TilemapGen : MonoBehaviour
             Vector3Int tilePos = new Vector3Int(x, 2, 0);
             int accessX = tilePos.x + Mathf.Abs(testX);
             int accessY = tilePos.y + Mathf.Abs(testY);
-            GridNode node = MovementGrid.instance.pathfindingGrid[accessX, accessY];
+            GridNode node = MovementManager.instance.pathfindingGrid[accessX, accessY];
             node.isWalkable = false;
             
             wallTilemap.SetTile(tilePos, straightTileSides);
