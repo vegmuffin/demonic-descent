@@ -7,16 +7,16 @@ public class MovementManager : MonoBehaviour
 {
     public static MovementManager instance;
 
-    [SerializeField] private Camera mainCamera;
+    [SerializeField] private Camera mainCamera = default;
     [Space]
-    [SerializeField] private Tile movementTile;
-    [SerializeField] private Tilemap wallTilemap;
-    [SerializeField] private Tilemap groundTilemap;
-    [SerializeField] private Tilemap movementTilemap;
+    [SerializeField] private Tile movementTile = default;
+    [SerializeField] private Tilemap wallTilemap = default;
+    [SerializeField] private Tilemap groundTilemap = default;
+    [SerializeField] private Tilemap movementTilemap = default;
     [Space]
-    [SerializeField] private Color mouseTintColor;
-    [SerializeField] private Color availablePathColor;
-    [SerializeField] private Color pathfindingColor;
+    [SerializeField] private Color mouseTintColor = default;
+    [SerializeField] private Color availablePathColor = default;
+    [SerializeField] private Color pathfindingColor = default;
     public int unitSpeed;
 
     // For A* Pathfinding, to access the tile on the grid by index, add startX and startY
@@ -29,7 +29,7 @@ public class MovementManager : MonoBehaviour
     private Vector3Int tempTilePos;
 
     // For now keep references, when there's no combat system present.
-    [SerializeField] private GameObject player;
+    [SerializeField] private GameObject player = default;
 
     private void Awake()
     {
@@ -52,6 +52,9 @@ public class MovementManager : MonoBehaviour
             player.GetComponent<UnitMovement>().StartCoroutine(player.GetComponent<UnitMovement>().MoveAlongPath(pathfindingTiles));
             GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
             GameStateManager.instance.gameState = GameStateManager.GameStates.MOVING;
+
+            foreach(Vector3Int pos in pathfindingTiles)
+                groundTilemap.SetColor(pos, Color.white);
         }
     }
 

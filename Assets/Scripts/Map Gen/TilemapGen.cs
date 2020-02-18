@@ -5,26 +5,23 @@ using UnityEngine.Tilemaps;
 
 public class TilemapGen : MonoBehaviour
 {
-    [HideInInspector] public static TilemapGen instance;
-    [Header("Only odd numbers for intersection width to retain symmetry")]
-    [SerializeField] private int offsetBetweenRooms;
-    [SerializeField] private int intersectionWidth;
+    [HideInInspector] public static TilemapGen instance = default;
+    
+    [SerializeField] private Tilemap wallTilemap = default;
+    [SerializeField] private Tilemap groundTilemap = default;
+    [SerializeField] private Tilemap transparentTilemap = default;
     [Space]
-    [SerializeField] private Tilemap wallTilemap;
-    [SerializeField] private Tilemap groundTilemap;
-    [SerializeField] private Tilemap transparentTilemap;
+    [SerializeField] private Tile straightTileTop = default;
+    [SerializeField] private Tile straightTileSides = default;
+    [SerializeField] private Tile cornerTileSides = default;
+    [SerializeField] private Tile cornerTileTop = default;
+    [SerializeField] private Tile groundTile = default;
+    [SerializeField] private Tile transparentTile = default;
     [Space]
-    [SerializeField] private Tile straightTileTop;
-    [SerializeField] private Tile straightTileSides;
-    [SerializeField] private Tile cornerTileSides;
-    [SerializeField] private Tile cornerTileTop;
-    [SerializeField] private Tile groundTile;
-    [SerializeField] private Tile transparentTile;
-    [Space]
-    [SerializeField] private int leftBound;
-    [SerializeField] private int rightBound;
-    [SerializeField] private int topBound;
-    [SerializeField] private int bottomBound;
+    private int roomWidth;
+    private int roomHeight;
+    private int offsetBetweenRooms;
+    private int intersectionWidth;
 
     private int testX;
     private int testY;
@@ -32,6 +29,10 @@ public class TilemapGen : MonoBehaviour
     private void Awake()
     {
         instance = this;
+        roomWidth = RoomManager.instance.roomWidth;
+        roomHeight = RoomManager.instance.roomHeight;
+        offsetBetweenRooms = RoomManager.instance.offsetBetweenRooms;
+        intersectionWidth = RoomManager.instance.intersectionWidth;
     }
 
     void Update()
@@ -51,7 +52,7 @@ public class TilemapGen : MonoBehaviour
         foreach(Vector2 coord in map)
         {
             // Since the layout is generated on a 1x1 scale, we have to expand the actual coordinates to fit our room needs.
-            Vector2Int expandedCoord = new Vector2Int((int)coord.x*(rightBound+offsetBetweenRooms)*2, (int)coord.y*(topBound+offsetBetweenRooms)*2);
+            Vector2Int expandedCoord = new Vector2Int((int)coord.x*(roomWidth+offsetBetweenRooms)*2, (int)coord.y*(roomHeight+offsetBetweenRooms)*2);
 
             // For better management, lets generate different tilemap parts separately.
             GenerateGround(expandedCoord);
@@ -59,10 +60,10 @@ public class TilemapGen : MonoBehaviour
             GenerateIntersections(expandedCoord);
 
             // Expanded coordinate bounds
-            int expCoordMinX = expandedCoord.x - rightBound - 1;
-            int expCoordMinY = expandedCoord.y - topBound - 1;
-            int expCoordMaxX = expandedCoord.x + rightBound + 1;
-            int expCoordMaxY = expandedCoord.x + topBound + 1;
+            int expCoordMinX = expandedCoord.x - roomWidth - 1;
+            int expCoordMinY = expandedCoord.y - roomHeight - 1;
+            int expCoordMaxX = expandedCoord.x + roomWidth + 1;
+            int expCoordMaxY = expandedCoord.x + roomHeight + 1;
 
             // Checking if we have update our min / max values.
             if(expCoordMinX < startX)
@@ -83,10 +84,10 @@ public class TilemapGen : MonoBehaviour
     private void GenerateGround(Vector2Int coord)
     {
         // Simple square grid generation.
-        int startX = coord.x - rightBound + 1;
-        int startY = coord.y - topBound + 1;
-        int endX = coord.x + rightBound;
-        int endY = coord.y + topBound;
+        int startX = coord.x - roomWidth + 1;
+        int startY = coord.y - roomHeight + 1;
+        int endX = coord.x + roomWidth;
+        int endY = coord.y + roomHeight;
         for(int x = startX; x < endX; ++x)
         {
             for(int y = startY; y < endY; ++y)
@@ -101,10 +102,10 @@ public class TilemapGen : MonoBehaviour
     // Primary function for generating all wall tiles.
     private void GenerateWalls(Vector2Int coord)
     {
-        int startX = coord.x - rightBound;
-        int startY = coord.y - topBound;
-        int endX = coord.x + rightBound;
-        int endY = coord.y + topBound;
+        int startX = coord.x - roomWidth;
+        int startY = coord.y - roomHeight;
+        int endX = coord.x + roomWidth;
+        int endY = coord.y + roomHeight;
         for(int x = startX; x <= endX; ++x)
         {
             for(int y = startY; y <= endY; ++y)
@@ -149,25 +150,25 @@ public class TilemapGen : MonoBehaviour
         // We can also check if there is already an intersection there to avoid pointless computing power.
 
         // Left
-        Vector3Int intersectionCoord = new Vector3Int((int)coord.x-rightBound-offsetBetweenRooms, (int)coord.y, 0);
+        Vector3Int intersectionCoord = new Vector3Int((int)coord.x-roomWidth-offsetBetweenRooms, (int)coord.y, 0);
         Vector3Int checkCoord = new Vector3Int(intersectionCoord.x-offsetBetweenRooms, intersectionCoord.y, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
             Intersection(intersectionCoord, "left");
 
         // Right
-        intersectionCoord = new Vector3Int((int)coord.x+rightBound+offsetBetweenRooms, (int)coord.y, 0);
+        intersectionCoord = new Vector3Int((int)coord.x+roomWidth+offsetBetweenRooms, (int)coord.y, 0);
         checkCoord = new Vector3Int(intersectionCoord.x+offsetBetweenRooms, intersectionCoord.y, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
             Intersection(intersectionCoord, "right");
 
         // Bottom
-        intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y-topBound-offsetBetweenRooms, 0);
+        intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y-roomHeight-offsetBetweenRooms, 0);
         checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y-offsetBetweenRooms, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
             Intersection(intersectionCoord, "bottom");
 
         // Top
-        intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y+topBound+offsetBetweenRooms, 0);
+        intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y+roomHeight+offsetBetweenRooms, 0);
         checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y+offsetBetweenRooms, 0);
         if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
             Intersection(intersectionCoord, "top");

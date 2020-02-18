@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class CrosshairShaderScript : MonoBehaviour
 {
-    [SerializeField] private Material mat;
+    [SerializeField] private Material mat = default;
     [Space]
-    [SerializeField] private float noiseSpeed;
-    [SerializeField] private float noiseCeiling;
-    [SerializeField] private float noiseFloor;
+    [SerializeField] private float noiseSpeed = default;
+    [SerializeField] private float noiseCeiling = default;
+    [SerializeField] private float noiseFloor = default;
     [Space]
-    [SerializeField] private float scaleSpeed;
-    [SerializeField] private float scaleCeiling;
-    [SerializeField] private float scaleFloor;
+    [SerializeField] private float scaleSpeed = default;
+    [SerializeField] private float scaleCeiling = default;
+    [SerializeField] private float scaleFloor = default;
     private float noiseAmount;
     private float noiseTimer = 0f;
     private float scaleAmount;

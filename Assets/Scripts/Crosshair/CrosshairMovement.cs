@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class CrosshairMovement : MonoBehaviour
 {
-    [SerializeField] private float speed;
-    [SerializeField] private float speedDecay;
+    [SerializeField] private float speed = default;
+    [SerializeField] private float speedDecay = default;
     private Transform tr;
     private float timer = 0f;
     private bool isMoving = false;

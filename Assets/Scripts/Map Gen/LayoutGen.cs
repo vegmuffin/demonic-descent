@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class LayoutGen : MonoBehaviour
 {
-    [SerializeField] private int forkingChance;
-    [SerializeField] private float forkingDiminishing;
+    [SerializeField] private int forkingChance = default;
+    [SerializeField] private float forkingDiminishing = default;
     
     private List<Vector2> roomCoordinates = new List<Vector2>();
 
@@ -15,7 +15,7 @@ public class LayoutGen : MonoBehaviour
     private int neighbours;
     [Space]
     [Header("For testing")]
-    [SerializeField] private int primaryLength;
+    [SerializeField] private int primaryLength = default;
 
     private void Start()
     {
@@ -33,17 +33,24 @@ public class LayoutGen : MonoBehaviour
         Vector2 currentCoord = Vector2.zero;
         roomCoordinates.Add(currentCoord);
 
+        Room firstRoom = new Room(false, currentCoord);
+        RoomManager.instance.allRooms.Add(firstRoom);
+        RoomManager.instance.currentRoom = RoomManager.instance.allRooms[0];
+
         int pathLeft = primaryPathLength;
         while(pathLeft > 0 && !exitCondition)
         {
             Vector2 newCoord = GiveCoordinate(currentCoord);
             if(newCoord == currentCoord)
             {
-                
                 continue;
             }
             currentCoord = newCoord;
             roomCoordinates.Add(currentCoord);
+
+            Room newRoom = new Room(false, currentCoord);
+            RoomManager.instance.allRooms.Add(newRoom);
+
             --pathLeft;
         }
         if(exitCondition)
@@ -70,7 +77,6 @@ public class LayoutGen : MonoBehaviour
         int random = Random.Range(0, 100);
         if(chance > random)
         {
-            /* Debug.Log("Fork success!"); */
             bool foundPath = false;
             while(!foundPath && !exitCondition)
             {

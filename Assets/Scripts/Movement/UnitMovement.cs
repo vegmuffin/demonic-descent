@@ -8,23 +8,11 @@ public class UnitMovement : MonoBehaviour
     private float timer = 0f;
 
     public int speed;
-    [HideInInspector] public int remainingMoves;
+    [HideInInspector] public int remainingMoves = default;
 
     private void Awake()
     {
         tr = transform;
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     public IEnumerator MoveAlongPath(List<Vector3Int> path)
