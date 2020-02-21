@@ -32,8 +32,8 @@ public class RoomManager : MonoBehaviour
     {
         instance = this;
         playerTransform = GameObject.Find("Player").transform;
-        xDistThreshold = roomWidth/2 + 1;
-        yDistThreshold = roomHeight/2 + 1;
+        xDistThreshold = roomWidth;
+        yDistThreshold = roomHeight;
         cameraTransform = Camera.main.transform;
     }
 
@@ -50,16 +50,58 @@ public class RoomManager : MonoBehaviour
         float distX = playerPos.x - roomPos.x;
         float distY = playerPos.y - roomPos.y;
 
-        // Left
-        if(distX < -xDistThreshold && !isCameraPanning && !isInIntersection)
+
+        if(!isCameraPanning)
         {
-            float newX = roomPos.x - roomWidth - offsetBetweenRooms;
-            isCameraPanning = true;
-            Vector3 endPos = new Vector3(newX, roomPos.y+1, -10f);
-            Vector3 startPos = new Vector3(currentRoom.position.x, currentRoom.position.y+1, -10f);
-            MovementManager.instance.totalXMoved -= roomWidth*2 + offsetBetweenRooms;
-            StartCoroutine(CameraPan(startPos, endPos));
+            if(!isInIntersection)
+            {
+                // Left
+                if(distX < -xDistThreshold)
+                {
+                    float newX = roomPos.x - roomWidth - offsetBetweenRooms/2;
+                    isCameraPanning = true;
+                    Vector3 endPos = new Vector3(newX, roomPos.y+1, -10f);
+                    Vector3 startPos = new Vector3(currentRoom.position.x, currentRoom.position.y+1, -10f);
+                    StartCoroutine(CameraPan(startPos, endPos));
+                }
+
+                // Right
+                if(distX > xDistThreshold)
+                {
+                    float newX = roomPos.x + roomWidth + offsetBetweenRooms/2;
+                    isCameraPanning = true;
+                    Vector3 endPos = new Vector3(newX, roomPos.y+1, -10f);
+                    Vector3 startPos = new Vector3(currentRoom.position.x, currentRoom.position.y+1, -10f);
+                    StartCoroutine(CameraPan(startPos, endPos));
+                }
+
+                // Bottom
+                if(distY < -yDistThreshold)
+                {
+                    float newY = roomPos.y - roomHeight - offsetBetweenRooms;
+                    isCameraPanning = true;
+                    Vector3 endPos = new Vector3(roomPos.x, newY+1, -10f);
+                    Vector3 startPos = new Vector3(currentRoom.position.x, currentRoom.position.y+1, -10f);
+                    StartCoroutine(CameraPan(startPos, endPos));
+                }
+
+                // Top
+                if(distY > yDistThreshold)
+                {
+                    float newY = roomPos.y + roomHeight + offsetBetweenRooms;
+                    isCameraPanning = true;
+                    Vector3 endPos = new Vector3(roomPos.x, newY+1, -10f);
+                    Vector3 startPos = new Vector3(currentRoom.position.x, currentRoom.position.y+1, -10f);
+                    StartCoroutine(CameraPan(startPos, endPos));
+                }
+            } 
+            else
+            {
+                
+            }
+            
         }
+        
     }
 
     private IEnumerator CameraPan(Vector3 startPos, Vector3 endPos)
