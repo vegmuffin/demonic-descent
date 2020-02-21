@@ -7,6 +7,8 @@ public class MovementManager : MonoBehaviour
 {
     public static MovementManager instance;
 
+    [HideInInspector] public float totalXMoved = 0;
+    [HideInInspector] public float totalYMoved = 0;
     [SerializeField] private Camera mainCamera = default;
     [Space]
     [SerializeField] private Tile movementTile = default;
@@ -77,8 +79,9 @@ public class MovementManager : MonoBehaviour
             groundTilemap.SetColor(tempTilePos, Color.white);
 
             // Getting the precise Vector3Int of the mouse position.
-            Vector3 mousePos = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, mainCamera.transform.position.z));
-            Vector3Int precisePos = new Vector3Int((int)Mathf.Ceil(mousePos.x)*-1, (int)Mathf.Ceil(mousePos.y-2f)*-1, 0);
+            Vector3 mousePos = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x + totalXMoved, Input.mousePosition.y + totalYMoved, mainCamera.transform.position.z));
+            Vector3Int precisePos = new Vector3Int((int)(Mathf.Ceil(mousePos.x)*-1+totalXMoved), (int)(Mathf.Ceil(mousePos.y-2f)*-1+totalYMoved), 0);
+            Debug.Log(mousePos.x*-1 + " " + mousePos.y*-1);
 
             // Let's color the pathfinding tiles and execute the pathfinding method.
             if(groundTilemap.HasTile(precisePos))
