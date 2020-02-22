@@ -33,10 +33,6 @@ public class LayoutGen : MonoBehaviour
         Vector2 currentCoord = Vector2.zero;
         roomCoordinates.Add(currentCoord);
 
-        Room firstRoom = new Room(false, currentCoord);
-        RoomManager.instance.allRooms.Add(firstRoom);
-        RoomManager.instance.currentRoom = RoomManager.instance.allRooms[0];
-
         int pathLeft = primaryPathLength;
         while(pathLeft > 0 && !exitCondition)
         {
@@ -47,9 +43,6 @@ public class LayoutGen : MonoBehaviour
             }
             currentCoord = newCoord;
             roomCoordinates.Add(currentCoord);
-
-            Room newRoom = new Room(false, currentCoord);
-            RoomManager.instance.allRooms.Add(newRoom);
 
             --pathLeft;
         }

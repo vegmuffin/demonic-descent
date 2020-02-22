@@ -53,6 +53,12 @@ public class TilemapGen : MonoBehaviour
         {
             // Since the layout is generated on a 1x1 scale, we have to expand the actual coordinates to fit our room needs.
             Vector2Int expandedCoord = new Vector2Int((int)coord.x*(roomWidth+offsetBetweenRooms)*2, (int)coord.y*(roomHeight+offsetBetweenRooms)*2);
+            Room room = new Room(false, expandedCoord);
+            RoomManager.instance.allRooms.Add(room);
+            if(expandedCoord.x == 0 && expandedCoord.y == 0)
+                RoomManager.instance.currentRoom = room;
+
+            Debug.Log(expandedCoord);
 
             // For better management, lets generate different tilemap parts separately.
             GenerateGround(expandedCoord);

@@ -848,9 +848,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   roomWidth: 10
   roomHeight: 7
-  offsetBetweenRooms: 2
+  offsetBetweenRooms: 3
   intersectionWidth: 3
-  cameraPanSpeed: 3
+  cameraPanSpeed: 2
 --- !u!4 &1421017210
 Transform:
   m_ObjectHideFlags: 0
