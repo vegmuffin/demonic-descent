@@ -1,30 +1,36 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class UnitMovement : MonoBehaviour
 {
     private Transform tr;
     private float timer = 0f;
 
-    public int speed;
     [HideInInspector] public int remainingMoves = default;
+
+    private Unit unit;
 
     private void Awake()
     {
         tr = transform;
+        unit = transform.GetComponent<Unit>();
     }
 
     public IEnumerator MoveAlongPath(List<Vector3Int> path)
     {
         while(remainingMoves > 0)
         {
+            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+            {
+                yield break;
+            }
             Vector2 futurePos = new Vector2(path[remainingMoves-1].x, path[remainingMoves-1].y);
             --remainingMoves;
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
 
-        remainingMoves = speed;
         var temp = GameStateManager.instance.gameState;
         GameStateManager.instance.gameState = GameStateManager.instance.previousGameState;
         GameStateManager.instance.previousGameState = temp;
@@ -41,6 +47,27 @@ public class UnitMovement : MonoBehaviour
             {
                 timer = 0;
                 tr.position = endPos;
+
+                // Checking for combat engagement.
+                if(!unit.isEnemy)
+                {
+                    Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
+                    foreach(GameObject enemy in CombatManager.instance.enemyList)
+                    {
+                        Vector3Int realTilemapPos = new Vector3Int(playerPos.x - (int)enemy.transform.position.x, playerPos.y - (int)enemy.transform.position.y, 0);
+                        Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;
+                        if(unitAggroTilemap.HasTile(realTilemapPos))
+                        {
+                            GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+                            GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+                            CombatManager.instance.QueueUnits();
+
+                            foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
+                                anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+                        }
+                    }
+                }
+                
                 yield break;
             }
             else

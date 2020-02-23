@@ -58,8 +58,6 @@ public class TilemapGen : MonoBehaviour
             if(expandedCoord.x == 0 && expandedCoord.y == 0)
                 RoomManager.instance.currentRoom = room;
 
-            Debug.Log(expandedCoord);
-
             // For better management, lets generate different tilemap parts separately.
             GenerateGround(expandedCoord);
             GenerateWalls(expandedCoord);

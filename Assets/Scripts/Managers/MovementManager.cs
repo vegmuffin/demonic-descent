@@ -92,7 +92,7 @@ public class MovementManager : MonoBehaviour
                 bool isExploring = false;
                 if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
                     isExploring = true;
-                int speed = player.GetComponent<UnitMovement>().speed;
+                int speed = 0;
 
                 List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring);
 
@@ -132,13 +132,10 @@ public class MovementManager : MonoBehaviour
     }
 
     // Diamond-shape grid generation.
-    private void GenerateGrid(Vector3Int coord, int speed)
+    public void GenerateGrid(Vector3Int coord, int speed, Tilemap tilemap, Color tileColor)
     {
         // Clearing previous tiles
-        movementTilemap.ClearAllTiles();
-
-        // How long should the grid be (across)
-        int maxspeed = speed*2;
+        tilemap.ClearAllTiles();
 
         // Creating the top and then the bottom of the diamond by constantly increasing/decreasing the amount of tiles to spawn.
         int tileCount = 1;
@@ -148,11 +145,13 @@ public class MovementManager : MonoBehaviour
             {
                 Vector3Int tilePos = new Vector3Int(coord.x, coord.y+speed, 0);
                 if(!wallTilemap.HasTile(tilePos))
+                {
                     if(groundTilemap.HasTile(tilePos))
                     {
-                        movementTilemap.SetTile(tilePos, movementTile);
-                        movementTilemap.SetColor(tilePos, availablePathColor);
+                        tilemap.SetTile(tilePos, movementTile);
+                        tilemap.SetColor(tilePos, tileColor);
                     }   
+                }  
             }      
             else
             {
@@ -162,11 +161,14 @@ public class MovementManager : MonoBehaviour
                 {
                     Vector3Int tilePos = new Vector3Int(coord.x+j, yCoord, 0);
                     if(!wallTilemap.HasTile(tilePos))
+                    {
                         if(groundTilemap.HasTile(tilePos))
                         {
-                            movementTilemap.SetTile(tilePos, movementTile);
-                            movementTilemap.SetColor(tilePos, availablePathColor);
+                            tilemap.SetTile(tilePos, movementTile);
+                            tilemap.SetColor(tilePos, tileColor);
                         }   
+                    }
+                        
                 }
             }
             
@@ -179,11 +181,13 @@ public class MovementManager : MonoBehaviour
             {
                 Vector3Int tilePos = new Vector3Int(coord.x, coord.y-speed, 0);
                 if(!wallTilemap.HasTile(tilePos))
+                {
                     if(groundTilemap.HasTile(tilePos))
                     {
-                        movementTilemap.SetTile(tilePos, movementTile);
-                        movementTilemap.SetColor(tilePos, availablePathColor);
+                        tilemap.SetTile(tilePos, movementTile);
+                        tilemap.SetColor(tilePos, tileColor);
                     }   
+                }
             }
             else
             {
@@ -193,11 +197,14 @@ public class MovementManager : MonoBehaviour
                 {
                     Vector3Int tilePos = new Vector3Int(coord.x+j, yCoord, 0);
                     if(!wallTilemap.HasTile(tilePos))
+                    {
                         if(groundTilemap.HasTile(tilePos))
                         {
-                            movementTilemap.SetTile(tilePos, movementTile);
-                            movementTilemap.SetColor(tilePos, availablePathColor);
-                        }   
+                            tilemap.SetTile(tilePos, movementTile);
+                            tilemap.SetColor(tilePos, tileColor);
+                        }
+                    }
+                        
                 }
             }
             tileCount -= 2;
@@ -214,7 +221,7 @@ public class MovementManager : MonoBehaviour
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 List<GridNode> path = Pathfinding(coord, tilePos, speed, true);
                 if(path.Count == 0)
-                    movementTilemap.SetTile(tilePos, null);
+                    tilemap.SetTile(tilePos, null);
             }
         }
     }
