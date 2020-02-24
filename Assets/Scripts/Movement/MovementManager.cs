@@ -15,8 +15,8 @@ public class MovementManager : MonoBehaviour
     [SerializeField] private Tilemap movementTilemap = default;
     [Space]
     [SerializeField] private Color mouseTintColor = default;
-    [SerializeField] private Color availablePathColor = default;
     [SerializeField] private Color pathfindingColor = default;
+    // unitSpeed represents how fast the movement executes, not how many tiles can the unit move.
     public int unitSpeed;
 
     // For A* Pathfinding, to access the tile on the grid by index, add startX and startY
@@ -28,81 +28,114 @@ public class MovementManager : MonoBehaviour
     private int distanceY;
     private Vector3Int tempTilePos;
 
-    // For now keep references, when there's no combat system present.
-    [SerializeField] private GameObject player = default;
+    private GameObject player = default;
 
     private void Awake()
     {
         instance = this;
         mainCamera.orthographicSize = 10;
+        player = GameObject.Find("Player");
     }
 
-    // test
-    // Since we do not have actual movement yet, using the update for testing purposes. :)
     void Update()
     {
         MouseInGrid();
         PlayerMove();
     }
 
+    // If there is an available path to the target tile, move. Used by both EXPLORING and COMBAT states. And of course, if it's not moving lol.
     private void PlayerMove()
     {
-        if(Input.GetKeyDown(KeyCode.Mouse0) && GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
+        if(Input.GetKeyDown(KeyCode.Mouse0) && pathfindingTiles.Count != 0 && !player.GetComponent<UnitMovement>().isMoving)
         {
-            player.GetComponent<UnitMovement>().remainingMoves = pathfindingTiles.Count;
-            player.GetComponent<UnitMovement>().StartCoroutine(player.GetComponent<UnitMovement>().MoveAlongPath(pathfindingTiles));
-            GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-            GameStateManager.instance.gameState = GameStateManager.GameStates.MOVING;
+            // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state. 
+            if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || (GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player"))
+            {
+                // If EXPLORING, alter the game states a bit, since MOVING is also a state (might be used later). Else, clear the movement grid.
+                if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                {
+                    GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+                    GameStateManager.instance.gameState = GameStateManager.GameStates.MOVING;
+                }
+                else
+                {
+                    CombatManager.instance.movementTilemap.ClearAllTiles();
+                }
 
-            foreach(Vector3Int pos in pathfindingTiles)
-                groundTilemap.SetColor(pos, Color.white);
+                // Clearing previous tiles and starting the movement.
+                foreach(Vector3Int pos in pathfindingTiles)
+                    groundTilemap.SetColor(pos, Color.white);
+
+                var unitMovement = player.GetComponent<UnitMovement>();
+                unitMovement.remainingMoves = pathfindingTiles.Count;
+                unitMovement.isMoving = true;
+
+                // Copy the pathfinding tiles into an array because when using pathfindingTiles.Count, it leads to issues if clicking very fast.
+                Vector3Int[] path = new Vector3Int[pathfindingTiles.Count];
+                pathfindingTiles.CopyTo(path);
+                pathfindingTiles.Clear();
+
+                StartCoroutine(player.GetComponent<UnitMovement>().MoveAlongPath(path, path.Length));
+            }
+            
         }
     }
 
     // Paints the tile on which the mouse is hovering.
     private void MouseInGrid()
     {
-        if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
+        if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
         {
-            // If there are some painted pathfinding tiles, clear them.
-            if(pathfindingTiles.Count > 0)
-            {
-                foreach(Vector3Int pos in pathfindingTiles)
-                {
-                    groundTilemap.SetColor(pos, Color.white);
-                }
-                pathfindingTiles.Clear();
-            }
-
-            // Reset color on the mouse-hovering tile.
-            groundTilemap.SetColor(tempTilePos, Color.white);
-
             // Getting the precise Vector3Int of the mouse position.
             Vector3 mousePos = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, mainCamera.transform.position.z));
             Vector3Int precisePos = new Vector3Int((int)(Mathf.Ceil(mousePos.x-1f)), (int)(Mathf.Ceil(mousePos.y-1f)), 0);
 
-            // Let's color the pathfinding tiles and execute the pathfinding method.
-            if(groundTilemap.HasTile(precisePos))
+            if(tempTilePos != precisePos)
             {
-                groundTilemap.SetColor(precisePos, mouseTintColor);
-                tempTilePos = precisePos;
+                // Reset color on the mouse-hovering tile.
+                groundTilemap.SetColor(tempTilePos, Color.white);
 
-                // Pathfinding! Getting needed variables.
-                Vector3Int playerPos = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
-                bool isExploring = false;
-                if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
-                    isExploring = true;
-                int speed = 0;
-
-                List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring);
-
-                foreach(GridNode tile in pathToCoord)
+                // If there are some painted pathfinding tiles, clear them.
+                if(pathfindingTiles.Count > 0)
                 {
-                    Vector3Int coord = new Vector3Int(tile.position.x, tile.position.y, 0);
-                    groundTilemap.SetColor(coord, pathfindingColor);
-                    pathfindingTiles.Add(coord);
+                    foreach(Vector3Int pos in pathfindingTiles)
+                    {
+                        groundTilemap.SetColor(pos, Color.white);
+                    }
+                    pathfindingTiles.Clear();
+                }
+
+                // Let's color the pathfinding tiles and execute the pathfinding method.
+                if(groundTilemap.HasTile(precisePos))
+                {
+                    groundTilemap.SetColor(precisePos, mouseTintColor);
+                    tempTilePos = precisePos;
+
+                    // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state.
+                    if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player") || GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
+                    {
+                        // Pathfinding! Getting needed variables.
+                        Vector3Int playerPos = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
+                        int speed = 0;
+                        bool isExploring = true;
+                        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+                        {
+                            isExploring = false;
+                            speed = player.GetComponent<Unit>().currentCombatPoints;
+                        }
+
+                        List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap);
+
+                        foreach(GridNode tile in pathToCoord)
+                        {
+                            Vector3Int coord = new Vector3Int(tile.position.x, tile.position.y, 0);
+                            groundTilemap.SetColor(coord, pathfindingColor);
+                            pathfindingTiles.Add(coord);
+                        }
+                    }
                 }
             }
+            
         }
     }
 
@@ -219,15 +252,17 @@ public class MovementManager : MonoBehaviour
             for(int y = startY; y <= endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                List<GridNode> path = Pathfinding(coord, tilePos, speed, true);
+                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap);
                 if(path.Count == 0)
+                {
                     tilemap.SetTile(tilePos, null);
+                }
             }
         }
     }
 
     // A*
-    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring)
+    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, Tilemap whichTilemap)
     {
         // Empty path.
         List<GridNode> path = new List<GridNode>();
@@ -239,7 +274,7 @@ public class MovementManager : MonoBehaviour
         {
             return path;
         }
-        if(!CanMove(endCoord) && !exploring)
+        if(!CanMove(endCoord, whichTilemap) && !exploring)
         {
             return path;
         }
@@ -294,7 +329,7 @@ public class MovementManager : MonoBehaviour
                 foreach(GridNode neighbour in GetNeighbours(currentNode))
                 {
                     // The node does not interest us if we already have evaluated it or if it's not even walkable.
-                    if(!neighbour.isWalkable || closedSet.Contains(neighbour) || (!movementTilemap.HasTile((Vector3Int)neighbour.position) && !exploring))
+                    if(!neighbour.isWalkable || closedSet.Contains(neighbour) || (!whichTilemap.HasTile((Vector3Int)neighbour.position) && !exploring))
                     {
                         continue;
                     }
@@ -369,9 +404,9 @@ public class MovementManager : MonoBehaviour
     }
 
     // Checking if there's a movement tile in a given coordinate.
-    private bool CanMove(Vector3Int coord)
+    private bool CanMove(Vector3Int coord, Tilemap whichTilemap)
     {
-        if(movementTilemap.HasTile(coord))
+        if(whichTilemap.HasTile(coord))
         {
             return true;
         }

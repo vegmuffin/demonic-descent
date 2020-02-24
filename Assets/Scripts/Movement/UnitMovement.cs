@@ -9,6 +9,7 @@ public class UnitMovement : MonoBehaviour
     private float timer = 0f;
 
     [HideInInspector] public int remainingMoves = default;
+    [HideInInspector] public bool isMoving = false;
 
     private Unit unit;
 
@@ -18,11 +19,11 @@ public class UnitMovement : MonoBehaviour
         unit = transform.GetComponent<Unit>();
     }
 
-    public IEnumerator MoveAlongPath(List<Vector3Int> path)
+    public IEnumerator MoveAlongPath(Vector3Int[] path, int combatPoints)
     {
         while(remainingMoves > 0)
         {
-            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.initiatingCombatState)
             {
                 yield break;
             }
@@ -30,10 +31,27 @@ public class UnitMovement : MonoBehaviour
             --remainingMoves;
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
-
-        var temp = GameStateManager.instance.gameState;
-        GameStateManager.instance.gameState = GameStateManager.instance.previousGameState;
-        GameStateManager.instance.previousGameState = temp;
+        
+        isMoving = false;
+        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState)
+        {
+            unit.currentCombatPoints -= combatPoints;
+            if(unit.currentCombatPoints > 0)
+            {
+                CombatManager.instance.ExecuteTurns();
+            }
+            else
+            {
+                CombatManager.instance.NextTurn();
+            }
+        }
+        else if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+        {
+            var temp = GameStateManager.instance.gameState;
+            GameStateManager.instance.gameState = GameStateManager.instance.previousGameState;
+            GameStateManager.instance.previousGameState = temp;
+        }
+        
     }
 
     private IEnumerator MoveLerp(Vector2 startPos, Vector2 endPos)
@@ -49,21 +67,22 @@ public class UnitMovement : MonoBehaviour
                 tr.position = endPos;
 
                 // Checking for combat engagement.
-                if(!unit.isEnemy)
+                if(!unit.isEnemy && GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
                 {
                     Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
                     foreach(GameObject enemy in CombatManager.instance.enemyList)
                     {
-                        Vector3Int realTilemapPos = new Vector3Int(playerPos.x - (int)enemy.transform.position.x, playerPos.y - (int)enemy.transform.position.y, 0);
                         Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;
-                        if(unitAggroTilemap.HasTile(realTilemapPos))
+                        if(unitAggroTilemap.HasTile(playerPos))
                         {
                             GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
                             GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
-                            CombatManager.instance.QueueUnits();
 
                             foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
                                 anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+
+                            isMoving = false;
+                            CombatManager.instance.InitiateCombat();
                         }
                     }
                 }
