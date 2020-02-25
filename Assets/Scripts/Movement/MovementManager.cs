@@ -114,6 +114,8 @@ public class MovementManager : MonoBehaviour
                     // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state.
                     if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player") || GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
                     {
+                        CursorManager.CursorStates mouseState = CursorManager.instance.currentState;
+
                         // Pathfinding! Getting needed variables.
                         Vector3Int playerPos = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
                         int speed = 0;
@@ -126,9 +128,18 @@ public class MovementManager : MonoBehaviour
 
                         List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap);
 
-                        foreach(GridNode tile in pathToCoord)
+                        int endIndex = pathToCoord.Count;
+                        if(mouseState == CursorManager.CursorStates.ATTACK)
                         {
-                            Vector3Int coord = new Vector3Int(tile.position.x, tile.position.y, 0);
+                            if(endIndex == 1)
+                                endIndex = 0;
+                            else
+                                endIndex -= 2;
+                        }
+
+                        for(int i = 0; i < endIndex; ++i)
+                        {
+                            Vector3Int coord = new Vector3Int(pathToCoord[i].position.x, pathToCoord[i].position.y, 0);
                             groundTilemap.SetColor(coord, pathfindingColor);
                             pathfindingTiles.Add(coord);
                         }

@@ -54,7 +54,7 @@ public class Unit : MonoBehaviour
         {
             if(CursorManager.instance.currentState != CursorManager.CursorStates.ATTACK)
             {
-                
+                CursorManager.instance.currentState = CursorManager.CursorStates.ATTACK;
             }
         }
     }
