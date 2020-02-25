@@ -33,6 +33,11 @@ public class UnitMovement : MonoBehaviour
         }
         
         isMoving = false;
+
+        // Invalidati
+        MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
+        MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)path[0].x, (int)path[0].y, 0), true);
+
         if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState)
         {
             unit.currentCombatPoints -= combatPoints;

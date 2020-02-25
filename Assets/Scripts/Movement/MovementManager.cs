@@ -72,6 +72,7 @@ public class MovementManager : MonoBehaviour
 
                 // Copy the pathfinding tiles into an array because when using pathfindingTiles.Count, it leads to issues if clicking very fast.
                 Vector3Int[] path = new Vector3Int[pathfindingTiles.Count];
+                pathfindingTiles.Reverse();
                 pathfindingTiles.CopyTo(path);
                 pathfindingTiles.Clear();
 
@@ -128,16 +129,8 @@ public class MovementManager : MonoBehaviour
 
                         List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap);
 
-                        int endIndex = pathToCoord.Count;
-                        if(mouseState == CursorManager.CursorStates.ATTACK)
-                        {
-                            if(endIndex == 1)
-                                endIndex = 0;
-                            else
-                                endIndex -= 2;
-                        }
-
-                        for(int i = 0; i < endIndex; ++i)
+                        int endIndex = 0;
+                        for(int i = pathToCoord.Count-1; i >= endIndex; --i)
                         {
                             Vector3Int coord = new Vector3Int(pathToCoord[i].position.x, pathToCoord[i].position.y, 0);
                             groundTilemap.SetColor(coord, pathfindingColor);
@@ -172,6 +165,18 @@ public class MovementManager : MonoBehaviour
                     isWalkable = false;
                 pathfindingGrid[x, y] = new GridNode(isWalkable, (Vector2Int)tilePos, x, y);
             }
+        }
+
+        // Checking for all enemies and units
+        foreach(GameObject player in GameObject.FindGameObjectsWithTag("Player"))
+        {
+            Vector3Int playerPos = new Vector3Int((int)player.transform.position.x + Mathf.Abs(startX), (int)player.transform.position.y + Mathf.Abs(startY), 0);
+            pathfindingGrid[playerPos.x, playerPos.y].isWalkable = false;
+        }
+        foreach(GameObject enemy in GameObject.FindGameObjectsWithTag("Enemy"))
+        {
+            Vector3Int enemyPos = new Vector3Int((int)enemy.transform.position.x + Mathf.Abs(startX), (int)enemy.transform.position.y + Mathf.Abs(startY), 0);
+            pathfindingGrid[enemyPos.x, enemyPos.y].isWalkable = false;
         }
     }
 
@@ -426,5 +431,12 @@ public class MovementManager : MonoBehaviour
             return false;
         }
             
+    }
+
+    public void UpdateTileWalkability(Vector3Int pos, bool walkability)
+    {
+        int gridX = Mathf.Abs(gridStartX) + pos.x;
+        int gridY = Mathf.Abs(gridStartY) + pos.y;
+        pathfindingGrid[gridX, gridY].isWalkable = walkability;
     }
 }

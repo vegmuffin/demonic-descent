@@ -6,12 +6,13 @@ public class CursorManager : MonoBehaviour
 {
     public static CursorManager instance;
 
-    [SerializeField] private Texture2D defaultCursor;
-    [SerializeField] private Texture2D attackCursor;
-    [SerializeField] private Texture2D moveCursor;
-    [SerializeField] private Texture2D castCursor;
+    [SerializeField] private Sprite defaultCursor;
+    [SerializeField] private Sprite attackCursor;
+    [SerializeField] private Sprite moveCursor;
+    [SerializeField] private Sprite castCursor;
 
     private Camera mainCamera;
+    private SpriteRenderer realCursor;
 
     public enum CursorStates
     {
@@ -27,13 +28,15 @@ public class CursorManager : MonoBehaviour
     {
         instance = this;
         currentState = CursorStates.DEFAULT;
-        Cursor.visible = false;
         mainCamera = Camera.main;
+        realCursor = transform.GetComponent<SpriteRenderer>();
     }
 
     private void Start()
     {
         Cursor.visible = false;
+        realCursor.sprite = defaultCursor;
+
     }
 
     private void Update()
@@ -43,7 +46,6 @@ public class CursorManager : MonoBehaviour
 
     private void UpdateCursor()
     {
-        Cursor.visible = false;
         transform.position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 1));
     }
 

@@ -49,7 +49,6 @@ public class Unit : MonoBehaviour
 
     private void OnMouseOver()
     {
-        Debug.Log("Hovering on: " + transform.gameObject.name);
         if(isEnemy)
         {
             if(CursorManager.instance.currentState != CursorManager.CursorStates.ATTACK)
@@ -61,6 +60,6 @@ public class Unit : MonoBehaviour
 
     private void OnMouseExit()
     {
-        Debug.Log("Exiting hover...");
+        CursorManager.instance.currentState = CursorManager.CursorStates.DEFAULT;
     }
 }
