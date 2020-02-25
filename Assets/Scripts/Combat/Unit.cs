@@ -46,4 +46,21 @@ public class Unit : MonoBehaviour
         Vector3Int pos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
         MovementManager.instance.GenerateGrid(pos, combatPoints, movementTilemap, aggroColor);
     }
+
+    private void OnMouseOver()
+    {
+        Debug.Log("Hovering on: " + transform.gameObject.name);
+        if(isEnemy)
+        {
+            if(CursorManager.instance.currentState != CursorManager.CursorStates.ATTACK)
+            {
+                
+            }
+        }
+    }
+
+    private void OnMouseExit()
+    {
+        Debug.Log("Exiting hover...");
+    }
 }
