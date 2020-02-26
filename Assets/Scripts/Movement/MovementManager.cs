@@ -106,8 +106,14 @@ public class MovementManager : MonoBehaviour
                     pathfindingTiles.Clear();
                 }
 
+                int gridX = precisePos.x + Mathf.Abs(gridStartX);
+                int gridY = precisePos.y + Mathf.Abs(gridStartY);
+                Debug.Log(precisePos);
+                bool isPosWalkable = pathfindingGrid[gridX, gridY].isWalkable;
+                Debug.Log(isPosWalkable);
+
                 // Let's color the pathfinding tiles and execute the pathfinding method.
-                if(groundTilemap.HasTile(precisePos))
+                if(isPosWalkable)
                 {
                     groundTilemap.SetColor(precisePos, mouseTintColor);
                     tempTilePos = precisePos;
@@ -158,12 +164,11 @@ public class MovementManager : MonoBehaviour
             for(int y = 0; y < distanceY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x+startX, y+startY, 0);
+                pathfindingGrid[x, y] = new GridNode(false, (Vector2Int)tilePos, x, y);
 
                 // Later on I will probably have a method that checks if a given tile can be walkable.
-                bool isWalkable = true;
-                if(!groundTilemap.HasTile(tilePos) || wallTilemap.HasTile(tilePos))
-                    isWalkable = false;
-                pathfindingGrid[x, y] = new GridNode(isWalkable, (Vector2Int)tilePos, x, y);
+                if(groundTilemap.HasTile(tilePos) && !wallTilemap.HasTile(tilePos))
+                    pathfindingGrid[x, y] = new GridNode(true, (Vector2Int)tilePos, x, y);
             }
         }
 

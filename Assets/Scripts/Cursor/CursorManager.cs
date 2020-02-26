@@ -46,6 +46,7 @@ public class CursorManager : MonoBehaviour
 
     private void UpdateCursor()
     {
+        Cursor.visible = false;
         transform.position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 1));
     }
 
