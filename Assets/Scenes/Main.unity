@@ -1571,7 +1571,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1414931273}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: 0}
+  m_LocalPosition: {x: -1, y: 2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1245003775}
@@ -2442,6 +2442,7 @@ MonoBehaviour:
   movementColor: {r: 0.509434, g: 1, b: 0.5575269, a: 0.11764706}
   timeBetweenTurns: 0.5
   timeBetweenRounds: 2
+  timeAfterAttack: 1
   enemyList: []
   combatQueue: []
   initiatingCombatState: 0

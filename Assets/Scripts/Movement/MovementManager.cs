@@ -346,8 +346,7 @@ public class MovementManager : MonoBehaviour
                         int speedCounter = 0;
                         foreach(GridNode node in path)
                             ++speedCounter;
-                        // This gridSpeed+1 is gonna bite me in the ass in some cases I'm sure of it.
-                        if(speedCounter > gridSpeed+1)
+                        if(speedCounter > gridSpeed)
                             return new List<GridNode>();
                         else
                         {

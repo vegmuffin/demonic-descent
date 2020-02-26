@@ -40,16 +40,22 @@ public class UnitMovement : MonoBehaviour
         MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
         MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)path[0].x, (int)path[0].y, 0), true);
 
-        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState)
+        if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState) || isAttacking)
         {
             unit.currentCombatPoints -= combatPoints;
 
             if(isAttacking && target != null)
             {
-                // Do attacking stuff
+                --unit.currentCombatPoints; // Basic attack costs 1 combat point.
+                target.GetComponent<Unit>().health -= unit.damage;
+
+                // PLAY ANIMATION
+                Debug.Log("Boom!");
+
+                StartCoroutine(CombatManager.instance.WaitAfterAttack(unit));
             }
 
-            if(unit.currentCombatPoints > 0)
+            else if(unit.currentCombatPoints > 0)
             {
                 CombatManager.instance.ExecuteTurns();
             }

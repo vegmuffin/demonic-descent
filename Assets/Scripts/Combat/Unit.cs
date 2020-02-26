@@ -6,9 +6,9 @@ using UnityEngine.Tilemaps;
 public class Unit : MonoBehaviour
 {
     public bool isEnemy;
-    [SerializeField] private int health = default;
+    public int health;
     public int combatPoints;
-    [SerializeField] private int damage = default;
+    public int damage;
     [SerializeField] private int aggroRange = default;
 
     private Color aggroColor;

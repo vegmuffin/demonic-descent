@@ -11,6 +11,7 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private Color movementColor = default;
     [SerializeField] private float timeBetweenTurns = default;
     [SerializeField] private float timeBetweenRounds = default;
+    [SerializeField] private float timeAfterAttack = default;
     [HideInInspector] public List<GameObject> enemyList = new List<GameObject>();
     [HideInInspector] public List<GameObject> combatQueue = new List<GameObject>();
 
@@ -19,6 +20,8 @@ public class CombatManager : MonoBehaviour
     [HideInInspector] public Tilemap movementTilemap;
     private float waitTurnsTimer;
     private float waitRoundsTimer;
+    private float afterAttackTimer;
+    private bool afterAttackBool = false;
     [HideInInspector] public string whoseTurn = string.Empty;
 
     private void Awake()
@@ -26,6 +29,7 @@ public class CombatManager : MonoBehaviour
         instance = this;
         waitTurnsTimer = timeBetweenTurns;
         waitRoundsTimer = timeBetweenRounds;
+        afterAttackTimer = 0;
         movementTilemap = GameObject.Find("MovementTilemap").GetComponent<Tilemap>();
     }
 
@@ -138,6 +142,41 @@ public class CombatManager : MonoBehaviour
                 currentIndex = 0;
                 whoseTurn = combatQueue[currentIndex].name;
                 ExecuteTurns();
+                yield break;
+            }
+            yield return new WaitForSecondsRealtime(Time.deltaTime);
+        }
+    }
+
+    public IEnumerator WaitAfterAttack(Unit unit)
+    {
+        while(afterAttackTimer < timeAfterAttack)
+        {
+            afterAttackTimer += Time.deltaTime;
+            if(afterAttackTimer >= timeAfterAttack)
+            {
+                afterAttackTimer = 0;
+
+                // If not already in combat, enter it (for something like sneak attacks or distance attacks).
+                if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                {
+                    GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+                    GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+
+                    foreach(GameObject enemy in CombatManager.instance.enemyList)
+                        enemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+
+                    unit.currentCombatPoints = unit.combatPoints;
+                    InitiateCombat();
+                }
+                else if(unit.combatPoints <= 0)
+                {
+                    NextTurn();
+                }
+                else
+                {
+                    ExecuteTurns();
+                }
                 yield break;
             }
             yield return new WaitForSecondsRealtime(Time.deltaTime);
