@@ -76,7 +76,15 @@ public class MovementManager : MonoBehaviour
                 pathfindingTiles.CopyTo(path);
                 pathfindingTiles.Clear();
 
-                StartCoroutine(player.GetComponent<UnitMovement>().MoveAlongPath(path, path.Length));
+                bool isAttacking = false;
+                GameObject target = null;
+                if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
+                {
+                    isAttacking = true;
+                    Debug.Log(tempTilePos);
+                    target = Physics2D.OverlapCircle(new Vector2(tempTilePos.x, tempTilePos.y), 0.33f).gameObject;
+                }
+                StartCoroutine(player.GetComponent<UnitMovement>().MoveAlongPath(path, path.Length, isAttacking, target));
             }
             
         }
@@ -96,7 +104,7 @@ public class MovementManager : MonoBehaviour
                 // Reset color on the mouse-hovering tile.
                 groundTilemap.SetColor(tempTilePos, Color.white);
 
-                // If there are some painted pathfinding tiles, clear them.
+                // If there are some paintaaed pathfinding tiles, clear them.
                 if(pathfindingTiles.Count > 0)
                 {
                     foreach(Vector3Int pos in pathfindingTiles)
@@ -108,12 +116,10 @@ public class MovementManager : MonoBehaviour
 
                 int gridX = precisePos.x + Mathf.Abs(gridStartX);
                 int gridY = precisePos.y + Mathf.Abs(gridStartY);
-                Debug.Log(precisePos);
                 bool isPosWalkable = pathfindingGrid[gridX, gridY].isWalkable;
-                Debug.Log(isPosWalkable);
 
                 // Let's color the pathfinding tiles and execute the pathfinding method.
-                if(isPosWalkable)
+                if(isPosWalkable || CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
                 {
                     groundTilemap.SetColor(precisePos, mouseTintColor);
                     tempTilePos = precisePos;
@@ -121,8 +127,6 @@ public class MovementManager : MonoBehaviour
                     // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state.
                     if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player") || GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING)
                     {
-                        CursorManager.CursorStates mouseState = CursorManager.instance.currentState;
-
                         // Pathfinding! Getting needed variables.
                         Vector3Int playerPos = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
                         int speed = 0;
@@ -133,7 +137,7 @@ public class MovementManager : MonoBehaviour
                             speed = player.GetComponent<Unit>().currentCombatPoints;
                         }
 
-                        List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap);
+                        List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap, false);
 
                         int endIndex = 0;
                         for(int i = pathToCoord.Count-1; i >= endIndex; --i)
@@ -273,7 +277,7 @@ public class MovementManager : MonoBehaviour
             for(int y = startY; y <= endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap);
+                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true);
                 if(path.Count == 0)
                 {
                     tilemap.SetTile(tilePos, null);
@@ -283,7 +287,7 @@ public class MovementManager : MonoBehaviour
     }
 
     // A*
-    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, Tilemap whichTilemap)
+    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, Tilemap whichTilemap, bool gridGeneration)
     {
         // Empty path.
         List<GridNode> path = new List<GridNode>();
@@ -309,6 +313,11 @@ public class MovementManager : MonoBehaviour
         HashSet<GridNode> closedSet = new HashSet<GridNode>();
         openSet.Add(startNode);
 
+        bool isAttacking = false;
+        if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && !gridGeneration)
+        {
+            isAttacking = true;
+        }
 
         while(openSet.Count > 0)
         {
@@ -337,11 +346,21 @@ public class MovementManager : MonoBehaviour
                         int speedCounter = 0;
                         foreach(GridNode node in path)
                             ++speedCounter;
-                        if(speedCounter > gridSpeed)
+                        // This gridSpeed+1 is gonna bite me in the ass in some cases I'm sure of it.
+                        if(speedCounter > gridSpeed+1)
                             return new List<GridNode>();
                         else
-                            return path;
+                        {
+                            if(isAttacking)
+                            {
+                                return GetAttackPath(path);
+                            }
+                            else
+                                return path;
+                        }
                     }
+                    else if(isAttacking)
+                        return GetAttackPath(path);
                     else
                         return path;
                 }
@@ -350,8 +369,13 @@ public class MovementManager : MonoBehaviour
                 foreach(GridNode neighbour in GetNeighbours(currentNode))
                 {
                     // The node does not interest us if we already have evaluated it or if it's not even walkable.
-                    if(!neighbour.isWalkable || closedSet.Contains(neighbour) || (!whichTilemap.HasTile((Vector3Int)neighbour.position) && !exploring))
+                    if((!neighbour.isWalkable) || closedSet.Contains(neighbour) || (!whichTilemap.HasTile((Vector3Int)neighbour.position) && !exploring))
                     {
+                        if(neighbour.position == (Vector2Int)endCoord)
+                        {
+                            neighbour.parent = currentNode;
+                            currentNode = neighbour;
+                        }
                         continue;
                     }
 
@@ -422,6 +446,16 @@ public class MovementManager : MonoBehaviour
         }
 
         return neighbours;
+    }
+
+    private List<GridNode> GetAttackPath(List<GridNode> fullPath)
+    {
+        fullPath.Reverse();
+        List<GridNode> attackPath = new List<GridNode>();
+        for(int j = 0; j < fullPath.Count-1; ++j)
+            attackPath.Add(fullPath[j]);
+        attackPath.Reverse();
+        return attackPath;
     }
 
     // Checking if there's a movement tile in a given coordinate.

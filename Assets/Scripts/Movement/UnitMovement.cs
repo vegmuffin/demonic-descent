@@ -19,12 +19,14 @@ public class UnitMovement : MonoBehaviour
         unit = transform.GetComponent<Unit>();
     }
 
-    public IEnumerator MoveAlongPath(Vector3Int[] path, int combatPoints)
+    public IEnumerator MoveAlongPath(Vector3Int[] path, int combatPoints, bool isAttacking, GameObject target)
     {
         while(remainingMoves > 0)
         {
             if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.initiatingCombatState)
             {
+                MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
+                MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)path[0].x, (int)path[0].y, 0), true);
                 yield break;
             }
             Vector2 futurePos = new Vector2(path[remainingMoves-1].x, path[remainingMoves-1].y);
@@ -34,13 +36,19 @@ public class UnitMovement : MonoBehaviour
         
         isMoving = false;
 
-        // Invalidati
+        // Updating past and current tiles.
         MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
         MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)path[0].x, (int)path[0].y, 0), true);
 
         if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState)
         {
             unit.currentCombatPoints -= combatPoints;
+
+            if(isAttacking && target != null)
+            {
+                // Do attacking stuff
+            }
+
             if(unit.currentCombatPoints > 0)
             {
                 CombatManager.instance.ExecuteTurns();
@@ -72,26 +80,19 @@ public class UnitMovement : MonoBehaviour
                 tr.position = endPos;
 
                 // Checking for combat engagement.
-                if(!unit.isEnemy && GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                if(CheckEngagement())
                 {
-                    Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
-                    foreach(GameObject enemy in CombatManager.instance.enemyList)
-                    {
-                        Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;
-                        if(unitAggroTilemap.HasTile(playerPos))
-                        {
-                            GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-                            GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+                    GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+                    GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
 
-                            foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
-                                anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+                    foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
+                        anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
 
-                            isMoving = false;
-                            CombatManager.instance.InitiateCombat();
-                        }
-                    }
+                    isMoving = false;
+                    unit.currentCombatPoints = unit.combatPoints;
+                    CombatManager.instance.InitiateCombat();
                 }
-                
+
                 yield break;
             }
             else
@@ -100,4 +101,22 @@ public class UnitMovement : MonoBehaviour
             }
         }
     }
+
+    private bool CheckEngagement()
+    {
+        if(!unit.isEnemy && GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+        {
+            Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
+            foreach(GameObject enemy in CombatManager.instance.enemyList)
+            {
+                Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;
+                if(unitAggroTilemap.HasTile(playerPos))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
