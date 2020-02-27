@@ -143,7 +143,11 @@ public class MovementManager : MonoBehaviour
                             speed = playerUnit.currentCombatPoints;
                         }
 
-                        List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap, false);
+                        bool isAttacking = false;
+                        if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
+                            isAttacking = true;
+                        
+                        List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap, false, isAttacking);
                         Debug.Log(pathToCoord.Count);
                         int endIndex = 0;
                         for(int i = pathToCoord.Count-1; i >= endIndex; --i)
@@ -295,7 +299,7 @@ public class MovementManager : MonoBehaviour
             for(int y = startY; y <= endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true);
+                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true, false);
                 if(path.Count == 0)
                     tilemap.SetTile(tilePos, null);
             }
@@ -303,7 +307,7 @@ public class MovementManager : MonoBehaviour
     }
 
     // A*
-    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, Tilemap whichTilemap, bool gridGeneration)
+    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, Tilemap whichTilemap, bool gridGeneration, bool isAttacking)
     {
         // Empty path.
         List<GridNode> path = new List<GridNode>();
@@ -329,9 +333,6 @@ public class MovementManager : MonoBehaviour
         HashSet<GridNode> closedSet = new HashSet<GridNode>();
         openSet.Add(startNode);
 
-        bool isAttacking = false;
-        if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && !gridGeneration)
-            isAttacking = true;
         bool foundPath = false;
 
         while(openSet.Count > 0)
@@ -389,7 +390,6 @@ public class MovementManager : MonoBehaviour
                     {
                         neighbour.parent = currentNode;
                         openSet[0] = neighbour;
-                        Debug.Log("Found path");
                         foundPath = true;
 
                         break;
