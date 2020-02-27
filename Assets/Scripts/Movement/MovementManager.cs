@@ -8,11 +8,7 @@ public class MovementManager : MonoBehaviour
     public static MovementManager instance;
 
     [SerializeField] private Camera mainCamera = default;
-    [Space]
     [SerializeField] private Tile movementTile = default;
-    [SerializeField] private Tilemap wallTilemap = default;
-    [SerializeField] private Tilemap groundTilemap = default;
-    [SerializeField] private Tilemap movementTilemap = default;
     [Space]
     [SerializeField] private Color mouseTintColor = default;
     [SerializeField] private Color pathfindingColor = default;
@@ -27,14 +23,24 @@ public class MovementManager : MonoBehaviour
     private int distanceX;
     private int distanceY;
     private Vector3Int tempTilePos;
+    private Tilemap wallTilemap = default;
+    private Tilemap groundTilemap = default;
+    private Tilemap movementTilemap = default;
 
-    private GameObject player = default;
+    private GameObject player;
+    private UnitMovement playerMovement;
+    private Unit playerUnit;
 
     private void Awake()
     {
         instance = this;
         mainCamera.orthographicSize = 10;
         player = GameObject.Find("Player");
+        movementTilemap = GameObject.Find("MovementTilemap").GetComponent<Tilemap>();
+        groundTilemap = GameObject.Find("GroundTilemap").GetComponent<Tilemap>();
+        wallTilemap = GameObject.Find("WallTilemap").GetComponent<Tilemap>();
+        playerMovement = player.GetComponent<UnitMovement>();
+        playerUnit = player.GetComponent<Unit>();
     }
 
     void Update()
@@ -46,10 +52,10 @@ public class MovementManager : MonoBehaviour
     // If there is an available path to the target tile, move. Used by both EXPLORING and COMBAT states. And of course, if it's not moving lol.
     private void PlayerMove()
     {
-        if(Input.GetKeyDown(KeyCode.Mouse0) && pathfindingTiles.Count != 0 && !player.GetComponent<UnitMovement>().isMoving)
+        if(Input.GetKeyDown(KeyCode.Mouse0) && (pathfindingTiles.Count != 0 || CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK) && !playerMovement.isMoving)
         {
             // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state. 
-            if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || (GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player"))
+            if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || (GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player" && playerUnit.CanAct()))
             {
                 // If EXPLORING, alter the game states a bit, since MOVING is also a state (might be used later). Else, clear the movement grid.
                 if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
@@ -66,9 +72,8 @@ public class MovementManager : MonoBehaviour
                 foreach(Vector3Int pos in pathfindingTiles)
                     groundTilemap.SetColor(pos, Color.white);
 
-                var unitMovement = player.GetComponent<UnitMovement>();
-                unitMovement.remainingMoves = pathfindingTiles.Count;
-                unitMovement.isMoving = true;
+                playerMovement.remainingMoves = pathfindingTiles.Count;
+                playerMovement.isMoving = true;
 
                 // Copy the pathfinding tiles into an array because when using pathfindingTiles.Count, it leads to issues if clicking very fast.
                 Vector3Int[] path = new Vector3Int[pathfindingTiles.Count];
@@ -81,10 +86,11 @@ public class MovementManager : MonoBehaviour
                 if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
                 {
                     isAttacking = true;
-                    Debug.Log(tempTilePos);
-                    target = Physics2D.OverlapCircle(new Vector2(tempTilePos.x, tempTilePos.y), 0.33f).gameObject;
+                    Vector2 overlapCirclePos = new Vector2(tempTilePos.x+0.5f, tempTilePos.y+0.5f);
+                    target = Physics2D.OverlapCircle(overlapCirclePos, 0.33f).gameObject;
                 }
-                StartCoroutine(player.GetComponent<UnitMovement>().MoveAlongPath(path, path.Length, isAttacking, target));
+                Vector3Int currentPosition = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
+                StartCoroutine(playerMovement.MoveAlongPath(currentPosition, path, path.Length, isAttacking, target));
             }
             
         }
@@ -93,7 +99,7 @@ public class MovementManager : MonoBehaviour
     // Paints the tile on which the mouse is hovering.
     private void MouseInGrid()
     {
-        if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+        if((GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT) && !CombatManager.instance.initiatingCombatState && !playerMovement.isMoving)
         {
             // Getting the precise Vector3Int of the mouse position.
             Vector3 mousePos = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, mainCamera.transform.position.z));
@@ -104,7 +110,7 @@ public class MovementManager : MonoBehaviour
                 // Reset color on the mouse-hovering tile.
                 groundTilemap.SetColor(tempTilePos, Color.white);
 
-                // If there are some paintaaed pathfinding tiles, clear them.
+                // If there are some painted pathfinding tiles, clear them.
                 if(pathfindingTiles.Count > 0)
                 {
                     foreach(Vector3Int pos in pathfindingTiles)
@@ -134,17 +140,29 @@ public class MovementManager : MonoBehaviour
                         if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
                         {
                             isExploring = false;
-                            speed = player.GetComponent<Unit>().currentCombatPoints;
+                            speed = playerUnit.currentCombatPoints;
                         }
 
                         List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap, false);
-
+                        Debug.Log(pathToCoord.Count);
                         int endIndex = 0;
                         for(int i = pathToCoord.Count-1; i >= endIndex; --i)
                         {
                             Vector3Int coord = new Vector3Int(pathToCoord[i].position.x, pathToCoord[i].position.y, 0);
                             groundTilemap.SetColor(coord, pathfindingColor);
                             pathfindingTiles.Add(coord);
+                        }
+
+                        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+                        {
+                            // How many combat points we're about to consume:
+                            int hoveringCombatPoints = 0;
+                            hoveringCombatPoints +=  pathfindingTiles.Count;   // Each tile costs 1 combat point.
+                            if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
+                                hoveringCombatPoints += 2; // Attacking costs 2.
+                            playerUnit.hoveringCombatPoints = hoveringCombatPoints;
+                            Debug.Log("Combat points we're about to consume: " + hoveringCombatPoints);
+                            
                         }
                     }
                 }
@@ -279,9 +297,7 @@ public class MovementManager : MonoBehaviour
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
                 List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true);
                 if(path.Count == 0)
-                {
                     tilemap.SetTile(tilePos, null);
-                }
             }
         }
     }
@@ -315,9 +331,8 @@ public class MovementManager : MonoBehaviour
 
         bool isAttacking = false;
         if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && !gridGeneration)
-        {
             isAttacking = true;
-        }
+        bool foundPath = false;
 
         while(openSet.Count > 0)
         {
@@ -326,74 +341,78 @@ public class MovementManager : MonoBehaviour
 
             //Debug.Log("Node position: " + endNode.position + ", is it walkable? " + endNode.isWalkable + ", fCost: " + endNode.fCost);
             
-            for(int i = 0; i < openSet.Count; ++i)
+            if(!foundPath)
             {
-                // If the F cost of a set member is lower than our current node's, that is gonna be our next node.
-                if(openSet[i].fCost < currentNode.fCost || (openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost))
+                for(int i = 0; i < openSet.Count; ++i)
                 {
-                    currentNode = openSet[i];
+                    // If the F cost of a set member is lower than our current node's, that is gonna be our next node.
+                    if(openSet[i].fCost < currentNode.fCost || (openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost))
+                        currentNode = openSet[i];
                 }
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode);
+            }
 
-                // If we have reached the end, we can safely retrace the path and exit. Unless it exceeds our speed.
-                if(currentNode == endNode)
+            // If we have reached the end, we can safely retrace the path and exit. Unless it exceeds our speed.
+            if(currentNode == endNode)
+            {
+                path = RetracePath(startNode, endNode);
+
+                if(!exploring)
                 {
-                    path = RetracePath(startNode, endNode);
-
-                    if(!exploring)
-                    {
-                        int speedCounter = 0;
-                        foreach(GridNode node in path)
-                            ++speedCounter;
-                        if(speedCounter > gridSpeed)
-                            return new List<GridNode>();
-                        else
-                        {
-                            if(isAttacking)
-                            {
-                                return GetAttackPath(path);
-                            }
-                            else
-                                return path;
-                        }
-                    }
-                    else if(isAttacking)
-                        return GetAttackPath(path);
+                    int speedCounter = 0;
+                    foreach(GridNode node in path)
+                        ++speedCounter;
+                    if(speedCounter > gridSpeed)
+                        return new List<GridNode>();
                     else
-                        return path;
+                    {
+                        if(isAttacking)
+                            return GetAttackPath(path);
+                        else
+                            return path;
+                    }
+                }
+                else if(isAttacking)
+                    return GetAttackPath(path);          
+                else
+                    return path;
+            }
+
+            // Getting all neighbours from our current node.
+            foreach(GridNode neighbour in GetNeighbours(currentNode))
+            {
+                // The node does not interest us if we already have evaluated it or if it's not even walkable.
+                if((!neighbour.isWalkable) || closedSet.Contains(neighbour) || (!whichTilemap.HasTile((Vector3Int)neighbour.position) && !exploring))
+                {
+                    if(neighbour.position == (Vector2Int)endCoord)
+                    {
+                        neighbour.parent = currentNode;
+                        openSet[0] = neighbour;
+                        Debug.Log("Found path");
+                        foundPath = true;
+
+                        break;
+                    }
+                    continue;
                 }
 
-                // Getting all neighbours from our current node.
-                foreach(GridNode neighbour in GetNeighbours(currentNode))
+                int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
+
+                /* If the new path to neighbour is shorter than the old path or if the neighbour hasn't been evaluated, calculate the F cost
+                and set the parent to current node (to trace path later).*/
+                if(newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
                 {
-                    // The node does not interest us if we already have evaluated it or if it's not even walkable.
-                    if((!neighbour.isWalkable) || closedSet.Contains(neighbour) || (!whichTilemap.HasTile((Vector3Int)neighbour.position) && !exploring))
-                    {
-                        if(neighbour.position == (Vector2Int)endCoord)
-                        {
-                            neighbour.parent = currentNode;
-                            currentNode = neighbour;
-                        }
-                        continue;
-                    }
+                    neighbour.gCost = newMovementCostToNeighbour;
+                    neighbour.hCost = GetDistance(neighbour, endNode);
+                    neighbour.parent = currentNode;
 
-                    int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
-
-                    /* If the new path to neighbour is shorter than the old path or if the neighbour hasn't been evaluated, calculate the F cost
-                    and set the parent to current node (to trace path later).*/
-                    if(newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
-                    {
-                        neighbour.gCost = newMovementCostToNeighbour;
-                        neighbour.hCost = GetDistance(neighbour, endNode);
-                        neighbour.parent = currentNode;
-
-                        if(!openSet.Contains(neighbour))
-                            openSet.Add(neighbour);
-                    }
+                    if(!openSet.Contains(neighbour))
+                        openSet.Add(neighbour);
                 }
             }
         }
+        
 
         // If we have reached here, that means we haven't found a path to the end node, which simply means we are returning an empty list.
         return path;
@@ -461,14 +480,9 @@ public class MovementManager : MonoBehaviour
     private bool CanMove(Vector3Int coord, Tilemap whichTilemap)
     {
         if(whichTilemap.HasTile(coord))
-        {
             return true;
-        }
         else
-        {
-            return false;
-        }
-            
+            return false;   
     }
 
     public void UpdateTileWalkability(Vector3Int pos, bool walkability)

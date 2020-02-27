@@ -78,6 +78,7 @@ public class CombatManager : MonoBehaviour
         {
             Vector3Int playerPos = new Vector3Int((int)combatQueue[currentIndex].transform.position.x, (int)combatQueue[currentIndex].transform.position.y, 0);
             int speed = currentUnit.currentCombatPoints;
+            Debug.Log("Current combat points: " + speed);
             MovementManager.instance.GenerateGrid(playerPos, speed, movementTilemap, movementColor);
         }
         else
@@ -156,7 +157,6 @@ public class CombatManager : MonoBehaviour
             if(afterAttackTimer >= timeAfterAttack)
             {
                 afterAttackTimer = 0;
-
                 // If not already in combat, enter it (for something like sneak attacks or distance attacks).
                 if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
                 {
@@ -169,7 +169,7 @@ public class CombatManager : MonoBehaviour
                     unit.currentCombatPoints = unit.combatPoints;
                     InitiateCombat();
                 }
-                else if(unit.combatPoints <= 0)
+                else if(unit.currentCombatPoints <= 0)
                 {
                     NextTurn();
                 }

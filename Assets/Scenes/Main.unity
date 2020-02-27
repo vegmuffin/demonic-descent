@@ -243,9 +243,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 1651762522}
   movementTile: {fileID: 11400000, guid: 0a0c075f030edee17a5f2ef2162a17e5, type: 2}
-  wallTilemap: {fileID: 1000378900}
-  groundTilemap: {fileID: 1557125757}
-  movementTilemap: {fileID: 883787883}
   mouseTintColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
   pathfindingColor: {r: 0.6886792, g: 0.6886792, b: 0.6886792, a: 1}
   unitSpeed: 10
@@ -464,8 +461,11 @@ MonoBehaviour:
   combatPoints: 4
   damage: 1
   aggroRange: 4
+  deathTime: 0.5
   movementTilemap: {fileID: 0}
   currentCombatPoints: 0
+  hoveringCombatPoints: 0
+  isDying: 0
 --- !u!212 &802505582
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -968,6 +968,7 @@ GameObject:
   - component: {fileID: 932640949}
   - component: {fileID: 932640948}
   - component: {fileID: 932640950}
+  - component: {fileID: 932640951}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -1068,11 +1069,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isEnemy: 0
   health: 10
-  combatPoints: 5
+  combatPoints: 8
   damage: 2
   aggroRange: 0
+  deathTime: 0
   movementTilemap: {fileID: 0}
   currentCombatPoints: 0
+  hoveringCombatPoints: 0
+  isDying: 0
 --- !u!61 &932640950
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1099,6 +1103,25 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!95 &932640951
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932640945}
+  m_Enabled: 0
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: c5a9128f043c631749db1b207ca8d6bc, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 1
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
 --- !u!1 &994977583
 GameObject:
   m_ObjectHideFlags: 0
@@ -1312,8 +1335,11 @@ MonoBehaviour:
   combatPoints: 2
   damage: 1
   aggroRange: 4
+  deathTime: 0.5
   movementTilemap: {fileID: 0}
   currentCombatPoints: 0
+  hoveringCombatPoints: 0
+  isDying: 0
 --- !u!212 &1109664627
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -1634,8 +1660,11 @@ MonoBehaviour:
   combatPoints: 2
   damage: 1
   aggroRange: 4
+  deathTime: 0.5
   movementTilemap: {fileID: 0}
   currentCombatPoints: 0
+  hoveringCombatPoints: 0
+  isDying: 0
 --- !u!212 &1414931278
 SpriteRenderer:
   m_ObjectHideFlags: 0

@@ -19,14 +19,14 @@ public class UnitMovement : MonoBehaviour
         unit = transform.GetComponent<Unit>();
     }
 
-    public IEnumerator MoveAlongPath(Vector3Int[] path, int combatPoints, bool isAttacking, GameObject target)
+    public IEnumerator MoveAlongPath(Vector3Int startNode, Vector3Int[] path, int combatPoints, bool isAttacking, GameObject target)
     {
         while(remainingMoves > 0)
         {
             if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.initiatingCombatState)
             {
                 MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
-                MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)path[0].x, (int)path[0].y, 0), true);
+                MovementManager.instance.UpdateTileWalkability(startNode, true);
                 yield break;
             }
             Vector2 futurePos = new Vector2(path[remainingMoves-1].x, path[remainingMoves-1].y);
@@ -38,7 +38,8 @@ public class UnitMovement : MonoBehaviour
 
         // Updating past and current tiles.
         MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
-        MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)path[0].x, (int)path[0].y, 0), true);
+        if(path.Length != 0)
+            MovementManager.instance.UpdateTileWalkability(startNode, true);
 
         if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState) || isAttacking)
         {
@@ -46,11 +47,13 @@ public class UnitMovement : MonoBehaviour
 
             if(isAttacking && target != null)
             {
-                --unit.currentCombatPoints; // Basic attack costs 1 combat point.
-                target.GetComponent<Unit>().health -= unit.damage;
+                Debug.Log(target);
+                unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
+                var targetUnit = target.GetComponent<Unit>();
+                targetUnit.health -= unit.damage;
+                targetUnit.OnDamage();
 
                 // PLAY ANIMATION
-                Debug.Log("Boom!");
 
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(unit));
             }
