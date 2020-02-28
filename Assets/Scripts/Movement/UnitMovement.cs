@@ -47,7 +47,6 @@ public class UnitMovement : MonoBehaviour
 
             if(isAttacking && target != null)
             {
-                Debug.Log(target);
                 unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
                 var targetUnit = target.GetComponent<Unit>();
                 targetUnit.health -= unit.damage;

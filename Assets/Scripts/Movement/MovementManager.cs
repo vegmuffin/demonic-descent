@@ -341,8 +341,6 @@ public class MovementManager : MonoBehaviour
         {
             GridNode currentNode = openSet[0];
             Vector3Int nodePos = new Vector3Int(currentNode.position.x, currentNode.position.y, 0);
-
-            //Debug.Log("Node position: " + endNode.position + ", is it walkable? " + endNode.isWalkable + ", fCost: " + endNode.fCost);
             
             if(!foundPath)
             {
