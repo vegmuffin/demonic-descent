@@ -25,7 +25,7 @@ public class SkeletonAI : MonoBehaviour
         Vector3Int startCoord = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
         Vector3Int endCoord = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
         List<GridNode> pathToPlayer = MovementManager.instance.Pathfinding(startCoord, endCoord, 0, true, skeletonUnit.movementTilemap, false, true);
-        Debug.Log("pathToPlayer.Count: " + pathToPlayer.Count);
+        pathToPlayer.Reverse();
 
         // This means we didn't reach to attack.
         if(pathToPlayer.Count > skeletonUnit.currentCombatPoints)
@@ -40,9 +40,9 @@ public class SkeletonAI : MonoBehaviour
             {
                 path[i] = new Vector3Int((int)newPath[i].position.x, (int)newPath[i].position.y, 0);
             }
-            skeletonUnitMovement.remainingMoves = path.Length;
-            StartCoroutine(skeletonUnitMovement.MoveAlongPath(startCoord, path, path.Length, false, null));
+            skeletonUnitMovement.remainingMoves = 0;
             
+            StartCoroutine(skeletonUnitMovement.MoveAlongPath(startCoord, path, path.Length, false, null));
         }
         else
         {
@@ -60,7 +60,7 @@ public class SkeletonAI : MonoBehaviour
                 Vector2 overlapCirclePos = new Vector2(endCoord.x+0.5f, endCoord.y+0.5f);
                 target = Physics2D.OverlapCircle(overlapCirclePos, 0.33f).gameObject;
             }
-            skeletonUnitMovement.remainingMoves = path.Length;
+            skeletonUnitMovement.remainingMoves = 0;
             StartCoroutine(skeletonUnitMovement.MoveAlongPath(startCoord, path, path.Length, isAttacking, target));
         }
     }

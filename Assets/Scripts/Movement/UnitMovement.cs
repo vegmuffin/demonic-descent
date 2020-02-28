@@ -21,7 +21,7 @@ public class UnitMovement : MonoBehaviour
 
     public IEnumerator MoveAlongPath(Vector3Int startNode, Vector3Int[] path, int combatPoints, bool isAttacking, GameObject target)
     {
-        while(remainingMoves > 0)
+        while(remainingMoves < combatPoints)
         {
             if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.initiatingCombatState)
             {
@@ -29,8 +29,8 @@ public class UnitMovement : MonoBehaviour
                 MovementManager.instance.UpdateTileWalkability(startNode, true);
                 yield break;
             }
-            Vector2 futurePos = new Vector2(path[remainingMoves-1].x, path[remainingMoves-1].y);
-            --remainingMoves;
+            Vector2 futurePos = new Vector2(path[remainingMoves].x, path[remainingMoves].y);
+            ++remainingMoves;
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
         
@@ -60,7 +60,10 @@ public class UnitMovement : MonoBehaviour
 
             else if(unit.currentCombatPoints > 0)
             {
-                CombatManager.instance.ExecuteTurns();
+                if(unit.gameObject.name != "Player")
+                    CombatManager.instance.NextTurn();
+                else
+                    CombatManager.instance.ExecuteTurns();
             }
             else
             {

@@ -5,6 +5,7 @@ using UnityEngine.Tilemaps;
 
 public class Unit : MonoBehaviour
 {
+    public Texture2D combatQueueImage;
     public bool isEnemy;
     public int health;
     public int combatPoints;
@@ -74,11 +75,21 @@ public class Unit : MonoBehaviour
     {
         if(health <= 0)
         {
+            var box = transform.GetComponent<BoxCollider2D>();
+            if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && box.bounds.Contains((Vector2)CursorManager.instance.transform.position))
+            {
+                OnMouseExit();
+            }
             // Play some animation
             isDying = true;
             MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), true);
             CombatManager.instance.RemoveFromQueue(transform.gameObject);
             Destroy(transform.parent.gameObject, deathTime);
+
+            if(gameObject.name == "Player")
+            {
+                Debug.Log("Game over!");
+            }
         }
         else
         {

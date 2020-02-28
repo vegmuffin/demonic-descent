@@ -54,6 +54,10 @@ public class MovementManager : MonoBehaviour
     {
         if(Input.GetKeyDown(KeyCode.Mouse0) && (pathfindingTiles.Count != 0 || CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK) && !playerMovement.isMoving)
         {
+            Vector3 playerPos = player.transform.position;
+            if(GetRealDistance(playerPos, tempTilePos) > 1 && pathfindingTiles.Count == 0)
+                return;
+            
             // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state. 
             if(GameStateManager.instance.gameState == GameStateManager.GameStates.EXPLORING || (GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.whoseTurn == "Player" && playerUnit.CanAct()))
             {
@@ -72,12 +76,11 @@ public class MovementManager : MonoBehaviour
                 foreach(Vector3Int pos in pathfindingTiles)
                     groundTilemap.SetColor(pos, Color.white);
 
-                playerMovement.remainingMoves = pathfindingTiles.Count;
+                playerMovement.remainingMoves = 0;
                 playerMovement.isMoving = true;
 
                 // Copy the pathfinding tiles into an array because when using pathfindingTiles.Count, it leads to issues if clicking very fast.
                 Vector3Int[] path = new Vector3Int[pathfindingTiles.Count];
-                pathfindingTiles.Reverse();
                 pathfindingTiles.CopyTo(path);
                 pathfindingTiles.Clear();
 
@@ -148,7 +151,6 @@ public class MovementManager : MonoBehaviour
                             isAttacking = true;
                         
                         List<GridNode> pathToCoord = Pathfinding(playerPos, precisePos, speed, isExploring, movementTilemap, false, isAttacking);
-                        Debug.Log(pathToCoord.Count);
                         int endIndex = 0;
                         for(int i = pathToCoord.Count-1; i >= endIndex; --i)
                         {
@@ -165,7 +167,6 @@ public class MovementManager : MonoBehaviour
                             if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
                                 hoveringCombatPoints += 2; // Attacking costs 2.
                             playerUnit.hoveringCombatPoints = hoveringCombatPoints;
-                            Debug.Log("Combat points we're about to consume: " + hoveringCombatPoints);
                             
                         }
                     }
@@ -444,6 +445,11 @@ public class MovementManager : MonoBehaviour
         if(dstX > dstY)
             return 14*dstY + 10*(dstX-dstY);
         return 14*dstX + 10*(dstY-dstX);
+    }
+
+    private float GetRealDistance(Vector3 pointA, Vector3 pointB)
+    {
+        return (pointA-pointB).sqrMagnitude;
     }
 
     // Getting the valid neighbours. For this particular implementation, we do not need the diagonal tiles as we are only moving in cardinal directions.

@@ -14,6 +14,7 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private float timeAfterAttack = default;
     [HideInInspector] public List<GameObject> enemyList = new List<GameObject>();
     [HideInInspector] public List<GameObject> combatQueue = new List<GameObject>();
+    [HideInInspector] public Unit currentUnit = null;
 
     [HideInInspector] public bool initiatingCombatState = false;
     private int currentIndex;
@@ -73,18 +74,28 @@ public class CombatManager : MonoBehaviour
 
     public void ExecuteTurns()
     {
-        Unit currentUnit = combatQueue[currentIndex].GetComponent<Unit>();
-        Debug.Log(currentUnit);
+        if(currentUnit == null)
+        {
+            currentUnit = combatQueue[currentIndex].GetComponent<Unit>();
+            currentUnit.currentCombatPoints = currentUnit.combatPoints;
+        }
+        else if(combatQueue[currentIndex].GetInstanceID() != currentUnit.gameObject.GetInstanceID())
+        {
+            currentUnit = combatQueue[currentIndex].GetComponent<Unit>();
+            currentUnit.currentCombatPoints = currentUnit.combatPoints;
+        }
+        else
+        {
+            // Do nothing, as the turn didn't finish yet and we dont need to set the combat points.
+        }
         if(whoseTurn == "Player")
         {
             Vector3Int playerPos = new Vector3Int((int)combatQueue[currentIndex].transform.position.x, (int)combatQueue[currentIndex].transform.position.y, 0);
             int speed = currentUnit.currentCombatPoints;
-            Debug.Log("Current combat points: " + speed);
             MovementManager.instance.GenerateGrid(playerPos, speed, movementTilemap, movementColor);
         }
         else if(whoseTurn == "Skeleton")
         {
-            Debug.Log("Time to execute other turns");
             currentUnit.transform.GetComponent<SkeletonAI>().BeginAI();
         }
     }
@@ -96,9 +107,15 @@ public class CombatManager : MonoBehaviour
         if(currentIndex == combatQueue.Count)
         {
             currentIndex = 0;
+            whoseTurn = combatQueue[currentIndex].name;
+            StartCoroutine(WaitBetweenRounds());
+        } 
+        else
+        {
+            whoseTurn = combatQueue[currentIndex].name;
+            StartCoroutine(WaitBetweenTurns());
         }
-        whoseTurn = combatQueue[currentIndex].name;
-        StartCoroutine(WaitBetweenTurns());
+        
     }
 
     public void RemoveFromQueue(GameObject go)
@@ -111,6 +128,19 @@ public class CombatManager : MonoBehaviour
                 break;
             }
         }
+
+        if(combatQueue.Count <= 1)
+        {
+            EndCombat();
+            enemyList.Clear();
+        }
+    }
+
+    private void EndCombat()
+    {
+        GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+        GameStateManager.instance.gameState = GameStateManager.GameStates.EXPLORING;
+        combatQueue.Clear();
     }
 
     private IEnumerator WaitBetweenTurns()
@@ -135,7 +165,10 @@ public class CombatManager : MonoBehaviour
             waitRoundsTimer -= Time.deltaTime;
             if(waitRoundsTimer <= 0)
             {
-                waitRoundsTimer = timeBetweenTurns;
+                waitRoundsTimer = timeBetweenRounds;
+                if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                    yield break;
+                ExecuteTurns();
                 yield break;
             }
             yield return new WaitForSecondsRealtime(Time.deltaTime);
@@ -151,7 +184,7 @@ public class CombatManager : MonoBehaviour
             if(waitRoundsTimer <= 0)
             {
                 initiatingCombatState = false;
-                waitRoundsTimer = timeBetweenTurns;
+                waitRoundsTimer = timeBetweenRounds;
                 QueueUnits();
                 currentIndex = 0;
                 whoseTurn = combatQueue[currentIndex].name;
@@ -171,16 +204,24 @@ public class CombatManager : MonoBehaviour
             {
                 afterAttackTimer = 0;
                 // If not already in combat, enter it (for something like sneak attacks or distance attacks).
-                if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                if(GameStateManager.instance.gameState == GameStateManager.GameStates.MOVING)
                 {
-                    GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-                    GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+                    if(combatQueue.Count != 0)
+                    {
+                        GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+                        GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
 
-                    foreach(GameObject enemy in CombatManager.instance.enemyList)
-                        enemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+                        foreach(GameObject enemy in CombatManager.instance.enemyList)
+                            enemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
 
-                    unit.currentCombatPoints = unit.combatPoints;
-                    InitiateCombat();
+                        unit.currentCombatPoints = unit.combatPoints;
+                        InitiateCombat();
+                    }
+                    
+                }
+                else if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                {
+                    yield break;
                 }
                 else if(unit.currentCombatPoints <= 0)
                 {
