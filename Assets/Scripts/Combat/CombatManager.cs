@@ -74,6 +74,7 @@ public class CombatManager : MonoBehaviour
     public void ExecuteTurns()
     {
         Unit currentUnit = combatQueue[currentIndex].GetComponent<Unit>();
+        Debug.Log(currentUnit);
         if(whoseTurn == "Player")
         {
             Vector3Int playerPos = new Vector3Int((int)combatQueue[currentIndex].transform.position.x, (int)combatQueue[currentIndex].transform.position.y, 0);
@@ -81,10 +82,10 @@ public class CombatManager : MonoBehaviour
             Debug.Log("Current combat points: " + speed);
             MovementManager.instance.GenerateGrid(playerPos, speed, movementTilemap, movementColor);
         }
-        else
+        else if(whoseTurn == "Skeleton")
         {
             Debug.Log("Time to execute other turns");
-            // Execute AI scripts
+            currentUnit.transform.GetComponent<SkeletonAI>().BeginAI();
         }
     }
 
@@ -98,6 +99,18 @@ public class CombatManager : MonoBehaviour
         }
         whoseTurn = combatQueue[currentIndex].name;
         StartCoroutine(WaitBetweenTurns());
+    }
+
+    public void RemoveFromQueue(GameObject go)
+    {
+        for(int i = 0; i < combatQueue.Count; ++i)
+        {
+            if(combatQueue[i].GetInstanceID() == go.GetInstanceID())
+            {
+                combatQueue.RemoveAt(i);
+                break;
+            }
+        }
     }
 
     private IEnumerator WaitBetweenTurns()

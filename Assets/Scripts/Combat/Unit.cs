@@ -76,8 +76,9 @@ public class Unit : MonoBehaviour
         {
             // Play some animation
             isDying = true;
-            Destroy(transform.parent.gameObject, deathTime);
             MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), true);
+            CombatManager.instance.RemoveFromQueue(transform.gameObject);
+            Destroy(transform.parent.gameObject, deathTime);
         }
         else
         {

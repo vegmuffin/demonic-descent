@@ -307,7 +307,8 @@ public class MovementManager : MonoBehaviour
     }
 
     // A*
-    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, Tilemap whichTilemap, bool gridGeneration, bool isAttacking)
+    public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, 
+                                      Tilemap whichTilemap, bool gridGeneration, bool isAttacking)
     {
         // Empty path.
         List<GridNode> path = new List<GridNode>();
@@ -389,6 +390,8 @@ public class MovementManager : MonoBehaviour
                     if(neighbour.position == (Vector2Int)endCoord)
                     {
                         neighbour.parent = currentNode;
+                        if(openSet.Count == 0)
+                            return new List<GridNode>();
                         openSet[0] = neighbour;
                         foundPath = true;
 
