@@ -12,6 +12,7 @@ public class UnitMovement : MonoBehaviour
     [HideInInspector] public bool isMoving = false;
 
     private Unit unit;
+    private Vector2 lastDirection = Vector2.zero;
 
     private void Awake()
     {
@@ -30,9 +31,16 @@ public class UnitMovement : MonoBehaviour
                 yield break;
             }
             Vector2 futurePos = new Vector2(path[remainingMoves].x, path[remainingMoves].y);
+
+            UpdateDirection(new Vector3Int((int)tr.position.x, (int)transform.position.y, 0), path[remainingMoves]);
+            unit.PlayAnimation(lastDirection, "Move", 2);
+
             ++remainingMoves;
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
+
+        if(!isAttacking)
+            unit.PlayAnimation(lastDirection, "Idle", 0.5f);
         
         isMoving = false;
 
@@ -128,6 +136,18 @@ public class UnitMovement : MonoBehaviour
             }
         }
         return false;
+    }
+
+    private void UpdateDirection(Vector3Int current, Vector3Int target)
+    {
+        if(current.x > target.x)
+            lastDirection = Vector2.left;
+        else if(current.x < target.x)
+            lastDirection = Vector2.right;
+        else if(current.y > target.y)
+            lastDirection = Vector2.down;
+        else if(current.y < target.y)
+            lastDirection = Vector2.up;
     }
 
 }

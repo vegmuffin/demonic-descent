@@ -19,10 +19,12 @@ public class Unit : MonoBehaviour
     [HideInInspector] public int hoveringCombatPoints;
 
     public bool isDying = false;
+    private Animator thisAnimator;
 
     private void Awake()
     {
         currentCombatPoints = combatPoints;
+        thisAnimator = transform.GetComponent<Animator>();
     }
 
     private void Start()
@@ -102,5 +104,49 @@ public class Unit : MonoBehaviour
         if(hoveringCombatPoints <= currentCombatPoints)
             return true;
         return false;
+    }
+
+    public void PlayAnimation(Vector2 dir, string animationName, float speed)
+    {
+        thisAnimator.SetFloat("animSpeed", speed);
+        if(animationName == "Idle")
+        {
+            if(dir == Vector2.left)
+            {
+                thisAnimator.Play("IdleAnimationLeft");
+            } 
+            else if(dir == Vector2.right)
+            {
+                thisAnimator.Play("IdleAnimationRight");
+            }
+            else if(dir == Vector2.up)
+            {
+                thisAnimator.Play("IdleAnimationBack");
+            }
+            else if(dir == Vector2.down)
+            {
+                thisAnimator.Play("IdleAnimationFront");
+            }
+        }
+        else if(animationName == "Move")
+        {
+            if(dir == Vector2.left)
+            {
+                thisAnimator.Play("MovingAnimationLeft");
+            }
+            else if(dir == Vector2.right)
+            {
+                thisAnimator.Play("MovingAnimationRight");
+            }
+            else if(dir == Vector2.up)
+            {
+                thisAnimator.Play("MovingAnimationBack");
+            }
+            else if(dir == Vector2.down)
+            {
+                thisAnimator.Play("MovingAnimationFront");
+            }
+        }
+
     }
 }
