@@ -28,18 +28,21 @@ public class UnitMovement : MonoBehaviour
             {
                 MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
                 MovementManager.instance.UpdateTileWalkability(startNode, true);
+                if(tr.tag == "Player")
+                    unit.PlayAnimation(lastDirection, "Idle", 0.5f);
                 yield break;
             }
             Vector2 futurePos = new Vector2(path[remainingMoves].x, path[remainingMoves].y);
 
             UpdateDirection(new Vector3Int((int)tr.position.x, (int)transform.position.y, 0), path[remainingMoves]);
-            unit.PlayAnimation(lastDirection, "Move", 2);
+            if(!unit.isEnemy)
+                unit.PlayAnimation(lastDirection, "Move", 2);
 
             ++remainingMoves;
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
 
-        if(!isAttacking)
+        if(!isAttacking && tr.tag == "Player")
             unit.PlayAnimation(lastDirection, "Idle", 0.5f);
         
         isMoving = false;
@@ -123,7 +126,7 @@ public class UnitMovement : MonoBehaviour
 
     private bool CheckEngagement()
     {
-        if(!unit.isEnemy && GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+        if(tr.tag == "Player" && GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
         {
             Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
             foreach(GameObject enemy in CombatManager.instance.enemyList)

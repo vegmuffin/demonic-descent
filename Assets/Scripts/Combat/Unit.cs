@@ -24,7 +24,8 @@ public class Unit : MonoBehaviour
     private void Awake()
     {
         currentCombatPoints = combatPoints;
-        thisAnimator = transform.GetComponent<Animator>();
+        if(!isEnemy)
+            thisAnimator = transform.GetComponent<Animator>();
     }
 
     private void Start()
