@@ -185,7 +185,10 @@ public class CombatManager : MonoBehaviour
             {
                 initiatingCombatState = false;
                 waitRoundsTimer = timeBetweenRounds;
+
                 QueueUnits();
+                UIManager.instance.InitiateQueueUI(combatQueue);
+                
                 currentIndex = 0;
                 whoseTurn = combatQueue[currentIndex].name;
                 ExecuteTurns();

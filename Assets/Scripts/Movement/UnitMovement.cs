@@ -10,6 +10,7 @@ public class UnitMovement : MonoBehaviour
 
     [HideInInspector] public int remainingMoves = default;
     [HideInInspector] public bool isMoving = false;
+    [HideInInspector] public GameObject target = null;
 
     private Unit unit;
     private Vector2 lastDirection = Vector2.zero;
@@ -22,6 +23,7 @@ public class UnitMovement : MonoBehaviour
 
     public IEnumerator MoveAlongPath(Vector3Int startNode, Vector3Int[] path, int combatPoints, bool isAttacking, GameObject target)
     {
+        this.target = target;
         while(remainingMoves < combatPoints)
         {
             if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.initiatingCombatState)
@@ -36,7 +38,7 @@ public class UnitMovement : MonoBehaviour
 
             UpdateDirection(new Vector3Int((int)tr.position.x, (int)transform.position.y, 0), path[remainingMoves]);
             if(!unit.isEnemy)
-                unit.PlayAnimation(lastDirection, "Move", 2);
+                unit.PlayAnimation(lastDirection, "Moving", 2);
 
             ++remainingMoves;
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
@@ -58,14 +60,8 @@ public class UnitMovement : MonoBehaviour
 
             if(isAttacking && target != null)
             {
-                unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
-                var targetUnit = target.GetComponent<Unit>();
-                targetUnit.health -= unit.damage;
-                targetUnit.OnDamage();
-
-                // PLAY ANIMATION
-
-                StartCoroutine(CombatManager.instance.WaitAfterAttack(unit));
+                UpdateDirection(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), new Vector3Int((int)target.transform.position.x, (int)target.transform.position.y, 0));
+                unit.PlayAnimation(lastDirection, "Attack", 1.5f);
             }
 
             else if(unit.currentCombatPoints > 0)
@@ -87,6 +83,32 @@ public class UnitMovement : MonoBehaviour
             GameStateManager.instance.previousGameState = temp;
         }
         
+    }
+
+    private void OnAttackAnimation()
+    {
+        unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
+        var targetUnit = target.GetComponent<Unit>();
+        targetUnit.health -= unit.damage;
+        targetUnit.OnDamage();
+
+        if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT && !targetUnit.isDying)
+        {
+            GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+            GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+
+            foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
+                anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+
+            isMoving = false;
+            unit.currentCombatPoints = unit.combatPoints;
+            CombatManager.instance.InitiateCombat();
+        } 
+        else
+        {
+            StartCoroutine(CombatManager.instance.WaitAfterAttack(unit));
+        }
+
     }
 
     private IEnumerator MoveLerp(Vector2 startPos, Vector2 endPos)

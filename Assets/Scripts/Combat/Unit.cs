@@ -5,11 +5,12 @@ using UnityEngine.Tilemaps;
 
 public class Unit : MonoBehaviour
 {
-    public Texture2D combatQueueImage;
+    public Sprite combatQueueImage;
     public bool isEnemy;
     public int health;
     public int combatPoints;
     public int damage;
+    public string acronym;
     [SerializeField] private int aggroRange = default;
     [SerializeField] private float deathTime = default;
 
@@ -18,8 +19,9 @@ public class Unit : MonoBehaviour
     [HideInInspector] public int currentCombatPoints;
     [HideInInspector] public int hoveringCombatPoints;
 
-    public bool isDying = false;
+    [HideInInspector] public bool isDying = false;
     private Animator thisAnimator;
+    private string lookDir = "Front";
 
     private void Awake()
     {
@@ -110,44 +112,40 @@ public class Unit : MonoBehaviour
     public void PlayAnimation(Vector2 dir, string animationName, float speed)
     {
         thisAnimator.SetFloat("animSpeed", speed);
-        if(animationName == "Idle")
+        string name = animationName + "Animation";
+        if(dir == Vector2.left)
         {
-            if(dir == Vector2.left)
-            {
-                thisAnimator.Play("IdleAnimationLeft");
-            } 
-            else if(dir == Vector2.right)
-            {
-                thisAnimator.Play("IdleAnimationRight");
-            }
-            else if(dir == Vector2.up)
-            {
-                thisAnimator.Play("IdleAnimationBack");
-            }
-            else if(dir == Vector2.down)
-            {
-                thisAnimator.Play("IdleAnimationFront");
-            }
+            name += "Left";
+            lookDir = "Left";
         }
-        else if(animationName == "Move")
+        else if(dir == Vector2.right)
         {
-            if(dir == Vector2.left)
-            {
-                thisAnimator.Play("MovingAnimationLeft");
-            }
-            else if(dir == Vector2.right)
-            {
-                thisAnimator.Play("MovingAnimationRight");
-            }
-            else if(dir == Vector2.up)
-            {
-                thisAnimator.Play("MovingAnimationBack");
-            }
-            else if(dir == Vector2.down)
-            {
-                thisAnimator.Play("MovingAnimationFront");
-            }
+            name += "Right";
+            lookDir = "Right";
+        }  
+        else if(dir == Vector2.down)
+        {
+            name += "Front";
+            lookDir = "Front";
         }
+        else if(dir == Vector2.up)
+        {
+            name += "Back";
+            lookDir = "Back";
+        }  
+        thisAnimator.Play(name);
+    }
 
+    public void OnAttackAnimationEnd()
+    {
+        string idleName = "Idle";
+        if(lookDir == "Left")
+            PlayAnimation(Vector2.left, idleName, 0.5f);
+        else if(lookDir == "Right")
+            PlayAnimation(Vector2.right, idleName, 0.5f);
+        else if(lookDir == "Front")
+            PlayAnimation(Vector2.down, idleName, 0.5f);
+        else if(lookDir == "Back")
+            PlayAnimation(Vector2.up, idleName, 0.5f);
     }
 }
