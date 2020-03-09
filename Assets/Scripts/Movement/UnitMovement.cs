@@ -61,7 +61,12 @@ public class UnitMovement : MonoBehaviour
             if(isAttacking && target != null)
             {
                 UpdateDirection(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), new Vector3Int((int)target.transform.position.x, (int)target.transform.position.y, 0));
-                unit.PlayAnimation(lastDirection, "Attack", 1.5f);
+
+                // ------------------ HAS TO BE CHANGED WHEN THERE ARE ENEMY ANIMATIONS IN PLACE
+                if(unit.tag == "Enemy")
+                    OnAttackAnimation();
+                else
+                    unit.PlayAnimation(lastDirection, "Attack", 1.5f);
             }
 
             else if(unit.currentCombatPoints > 0)
@@ -91,6 +96,16 @@ public class UnitMovement : MonoBehaviour
         var targetUnit = target.GetComponent<Unit>();
         targetUnit.health -= unit.damage;
         targetUnit.OnDamage();
+
+        // Shake camera
+        Vector3 playerPos = transform.position;
+        Vector3 unitPos = target.transform.position;
+        float x1 = unitPos.x;
+        float y1 = unitPos.y;
+        float x2 = playerPos.x;
+        float y2 = playerPos.y;
+        float angle = Mathf.Atan2(y1 - y2, x1 - x2)*180f / Mathf.PI;
+        CameraManager.instance.CameraShake(angle, 0.2f, 4);
 
         if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT && !targetUnit.isDying)
         {

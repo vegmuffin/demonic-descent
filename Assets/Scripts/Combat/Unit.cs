@@ -98,6 +98,8 @@ public class Unit : MonoBehaviour
         }
         else
         {
+            int index = CombatManager.instance.GetObjectIndex(gameObject);
+            UIManager.instance.HealthChange(index, health);
             // Play some animation
         }
     }

@@ -17,6 +17,7 @@ public class UIManager : MonoBehaviour
     private Transform canvasTransform;
     private Transform queuePanel;
     private RectTransform queuePanelRTransform;
+    private List<GameObject> panelElements = new List<GameObject>();
     private float panelTimer = 0f;
 
     private void Awake()
@@ -30,20 +31,37 @@ public class UIManager : MonoBehaviour
     public void InitiateQueueUI(List<GameObject> combatQueue)
     {
         float x = queuePanelRTransform.anchoredPosition.x;
-        Vector2 startPos = new Vector2(x, queuePanelRTransform.anchoredPosition.y -50);
-        Vector2 endPos = new Vector2(-50, queuePanelRTransform.anchoredPosition.y -50);
+        Vector2 startPos = new Vector2(x, queuePanelRTransform.anchoredPosition.y - 50);
+        Vector2 endPos = new Vector2(-50, queuePanelRTransform.anchoredPosition.y - 50);
 
         PopulateQueueUI(combatQueue);
 
         StartCoroutine(LowerQueueUI(startPos, endPos));
     }
 
+    public void HealthChange(int queueIndex, int healthUpdate)
+    {
+        Transform element = panelElements[queueIndex].transform;
+        TMP_Text healthText = element.Find("HLayout2").Find("HLayout1").Find("UnitHealth").GetComponent<TMP_Text>();
+        healthText.text = healthUpdate.ToString();
+
+        // Some juice on the UI is needed as well.
+    }
+
+    public void DeathChange(int queueIndex)
+    {
+
+    }
+
+    public void ClearQueue()
+    {
+
+    }
+
     private void PopulateQueueUI(List<GameObject> combatQueue)
     {
         float queuePanelHeight = combatQueue.Count * 100f;
         queuePanelRTransform.sizeDelta = new Vector2(queuePanelWidth, queuePanelHeight);
-
-        // POPULATE IT WITH STUFF :)
 
         foreach(GameObject combatUnit in combatQueue)
         {
@@ -55,6 +73,7 @@ public class UIManager : MonoBehaviour
             Sprite unitImage = unit.combatQueueImage;
 
             GameObject elementInstance = Instantiate(queueElement, Vector2.zero, Quaternion.identity, queuePanel);
+            panelElements.Add(elementInstance);
 
             Image img = elementInstance.transform.Find("HLayout1").Find("UnitImage").GetComponent<Image>();
             TMP_Text nText = elementInstance.transform.Find("HLayout1").Find("UnitName").GetComponent<TMP_Text>();
@@ -67,6 +86,8 @@ public class UIManager : MonoBehaviour
             cText.text = unitCombatPoints.ToString();
         }
     }
+
+
 
     private IEnumerator LowerQueueUI(Vector2 startPos, Vector2 endPos)
     {

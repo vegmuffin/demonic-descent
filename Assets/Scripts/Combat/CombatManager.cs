@@ -240,4 +240,13 @@ public class CombatManager : MonoBehaviour
         }
     }
 
+    public int GetObjectIndex(GameObject go)
+    {
+        if(combatQueue.Count != 0)
+            for(int i = 0; i < combatQueue.Count; ++i)
+                if(combatQueue[i].GetInstanceID() == go.GetInstanceID())
+                    return i;
+        return 0;
+    }
+
 }
