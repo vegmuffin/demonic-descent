@@ -141,6 +141,7 @@ public class CombatManager : MonoBehaviour
         GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
         GameStateManager.instance.gameState = GameStateManager.GameStates.EXPLORING;
         combatQueue.Clear();
+        UIManager.instance.EndQueueUI();
     }
 
     private IEnumerator WaitBetweenTurns()

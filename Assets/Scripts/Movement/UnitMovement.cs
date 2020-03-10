@@ -97,15 +97,7 @@ public class UnitMovement : MonoBehaviour
         targetUnit.health -= unit.damage;
         targetUnit.OnDamage();
 
-        // Shake camera
-        Vector3 playerPos = transform.position;
-        Vector3 unitPos = target.transform.position;
-        float x1 = unitPos.x;
-        float y1 = unitPos.y;
-        float x2 = playerPos.x;
-        float y2 = playerPos.y;
-        float angle = Mathf.Atan2(y1 - y2, x1 - x2)*180f / Mathf.PI;
-        CameraManager.instance.CameraShake(angle, 0.2f, 4);
+        InitiateCameraShake();
 
         if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT && !targetUnit.isDying)
         {
@@ -188,6 +180,18 @@ public class UnitMovement : MonoBehaviour
             lastDirection = Vector2.down;
         else if(current.y < target.y)
             lastDirection = Vector2.up;
+    }
+
+    private void InitiateCameraShake()
+    {
+        Vector3 playerPos = transform.position;
+        Vector3 unitPos = target.transform.position;
+        float x1 = unitPos.x;
+        float y1 = unitPos.y;
+        float x2 = playerPos.x;
+        float y2 = playerPos.y;
+        float angle = Mathf.Atan2(y1 - y2, x1 - x2)*180f / Mathf.PI;
+        CameraManager.instance.CameraShake(angle, 0.2f, 4);
     }
 
 }

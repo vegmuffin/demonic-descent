@@ -98,8 +98,12 @@ public class Unit : MonoBehaviour
         }
         else
         {
-            int index = CombatManager.instance.GetObjectIndex(gameObject);
-            UIManager.instance.HealthChange(index, health);
+            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+            {   
+                int index = CombatManager.instance.GetObjectIndex(gameObject);
+                UIManager.instance.HealthChange(index, health);
+            }
+            
             // Play some animation
         }
     }

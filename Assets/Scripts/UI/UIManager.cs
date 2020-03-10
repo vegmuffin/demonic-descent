@@ -10,8 +10,6 @@ public class UIManager : MonoBehaviour
     public static UIManager instance;
 
     [SerializeField] private GameObject queueElement;
-    [Space]
-    [SerializeField] private float queuePanelDropSpeed;
     [SerializeField] private float queuePanelWidth;
 
     private Transform canvasTransform;
@@ -30,13 +28,14 @@ public class UIManager : MonoBehaviour
 
     public void InitiateQueueUI(List<GameObject> combatQueue)
     {
-        float x = queuePanelRTransform.anchoredPosition.x;
-        Vector2 startPos = new Vector2(x, queuePanelRTransform.anchoredPosition.y - 50);
-        Vector2 endPos = new Vector2(-50, queuePanelRTransform.anchoredPosition.y - 50);
-
         PopulateQueueUI(combatQueue);
 
-        StartCoroutine(LowerQueueUI(startPos, endPos));
+        StartCoroutine(UIAnimations.instance.ShowQueue(queuePanelRTransform));
+    }
+
+    public void EndQueueUI()
+    {
+        StartCoroutine(UIAnimations.instance.HideQueue(queuePanelRTransform));
     }
 
     public void HealthChange(int queueIndex, int healthUpdate)
@@ -46,6 +45,8 @@ public class UIManager : MonoBehaviour
         healthText.text = healthUpdate.ToString();
 
         // Some juice on the UI is needed as well.
+        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+            StartCoroutine(UIAnimations.instance.HealthFlash(healthText));
     }
 
     public void DeathChange(int queueIndex)
@@ -84,30 +85,6 @@ public class UIManager : MonoBehaviour
             nText.text = unitName;
             hText.text = unitHealth.ToString();
             cText.text = unitCombatPoints.ToString();
-        }
-    }
-
-
-
-    private IEnumerator LowerQueueUI(Vector2 startPos, Vector2 endPos)
-    {
-        while(panelTimer <= 1f)
-        {
-            panelTimer += Time.deltaTime * queuePanelDropSpeed;
-            queuePanelRTransform.anchoredPosition = Vector2.Lerp(startPos, endPos, panelTimer);
-
-            if(panelTimer >= 1f)
-            {
-                Debug.Log("test");
-                panelTimer = 0f;
-                queuePanelRTransform.anchoredPosition = endPos;
-
-                yield break;
-            }
-            else
-            {
-                yield return new WaitForSecondsRealtime(Time.deltaTime);
-            }
         }
     }
 }
