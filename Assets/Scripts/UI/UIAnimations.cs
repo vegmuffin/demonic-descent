@@ -8,16 +8,17 @@ public class UIAnimations : MonoBehaviour
 {
     public static UIAnimations instance;
 
-    [SerializeField] private float queuePanelShowSpeed;
-    [SerializeField] private float queuePanelHideSpeed;
-    [SerializeField] private float singleElementHideSpeed;
+    [Header("Panel show/hide animation")]
+    [SerializeField] private AnimationCurve panelShowSpeedCurve;
+    [SerializeField] private AnimationCurve panelHideSpeedCurve;
     [SerializeField] private float queuePanelXOffset;
     [SerializeField] private float queuePanelYOffset;
-    [Space]
+    [Header("Damage UI text animation")]
     [SerializeField] private float textBounceHeight;
     [SerializeField] private Color textFlashColor;
-    [SerializeField] private float textFlashTime;
-    private float flashTimer = 0f;
+    [SerializeField] private float textFlashSpeed;
+    [Header("Element hide animation")]
+    [SerializeField] private AnimationCurve elementHideSpeedCurve;
 
     private void Awake()
     {
@@ -35,7 +36,7 @@ public class UIAnimations : MonoBehaviour
 
         while(timer <= 1f)
         {
-            timer += Time.deltaTime * queuePanelShowSpeed;
+            timer += Time.deltaTime * panelShowSpeedCurve.Evaluate(timer);
             elementRect.anchoredPosition = Vector2.Lerp(startPos, endPos, timer);
 
             if(timer >= 1f)
@@ -62,7 +63,7 @@ public class UIAnimations : MonoBehaviour
 
         while(timer <= 1f)
         {
-            timer += Time.deltaTime * queuePanelHideSpeed;
+            timer += Time.deltaTime * panelHideSpeedCurve.Evaluate(timer);
             elementRect.anchoredPosition = Vector2.Lerp(startPos, endPos, timer);
 
             if(timer >= 1f)
@@ -70,7 +71,7 @@ public class UIAnimations : MonoBehaviour
                 elementRect.anchoredPosition = endPos;
 
                 for(int i = 0; i < elementRect.transform.childCount; ++i)
-                    Destroy(elementRect.transform.GetChild(i).gameObject);
+                    Destroy(elementRect.transform.GetChild(i).gameObject, 5f); // Give it time to not fuck up.
                 
                 yield break;
             }
@@ -92,15 +93,13 @@ public class UIAnimations : MonoBehaviour
 
         while(timer <= 1f)
         {
-            timer += Time.deltaTime * singleElementHideSpeed;
+            timer += Time.deltaTime * elementHideSpeedCurve.Evaluate(timer);
             elementRect.anchoredPosition = Vector2.Lerp(startPos, endPos, timer);
 
             if(timer >= 1f)
             {
                 elementRect.anchoredPosition = endPos;
-
-                for(int i = 0; i < elementRect.transform.childCount; ++i)
-                    Destroy(elementRect.transform.GetChild(i).gameObject);
+                Destroy(elementRect.gameObject, 5f);
                 
                 yield break;
             }
@@ -114,21 +113,32 @@ public class UIAnimations : MonoBehaviour
 
     public IEnumerator HealthFlash(TMP_Text healthText)
     {
+        float timer = 0f;
+
         Color defaultColor = healthText.color;
         healthText.color = textFlashColor;
 
         Vector4 defaultMargin = healthText.margin;
-        healthText.margin = new Vector4(defaultMargin.x, defaultMargin.y, defaultMargin.z, textBounceHeight);
+        Vector4 bounceMargin = new Vector4(defaultMargin.x, defaultMargin.y, defaultMargin.z, textBounceHeight);
         
-        while(flashTimer <= textFlashTime)
+        while(timer <= 1)
         {
-            flashTimer += Time.deltaTime;
-
-            if(flashTimer >= textFlashTime)
+            if(timer >= 0.5f)
+            {
+                healthText.margin = Vector4.Lerp(bounceMargin, defaultMargin, timer);
+            } 
+            else
+            {
+                healthText.margin = Vector4.Lerp(defaultMargin, bounceMargin, timer);
+            }
+            
+            timer += Time.deltaTime * textFlashSpeed;
+            
+            if(timer >= 1)
             {
                 healthText.color = defaultColor;
                 healthText.margin = defaultMargin;
-                flashTimer = 0f;
+                timer = 0f;
                 yield break;
             }
             else

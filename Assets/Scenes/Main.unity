@@ -631,6 +631,80 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!1001 &925168933
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6393203265244860111, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530990, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_Name
+      value: SkeletonParent (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393203265319530991, guid: 4cc01ea3ea95b948f804b7db89a08e86,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4cc01ea3ea95b948f804b7db89a08e86, type: 3}
 --- !u!1 &929244252
 GameObject:
   m_ObjectHideFlags: 0
@@ -1012,6 +1086,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   queueElement: {fileID: 6255000731128636847, guid: dd9d1c97ff575e20fa172c2123843d02,
     type: 3}
+  deathPanel: {fileID: 3940404483784364103, guid: e371e3cfb5a3763389a12ee6416f509c,
+    type: 3}
   queuePanelWidth: 100
 --- !u!4 &1005352666
 Transform:
@@ -1039,12 +1115,173 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c3622f71b1b3165bab5c0ebb45f3e01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  queuePanelShowSpeed: 1
-  queuePanelHideSpeed: 1
+  panelShowSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0.0666666
+      outSlope: 0.0666666
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.15
+      value: 1.01
+      inSlope: -0.0009048313
+      outSlope: -0.0009048313
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.84874535
+      outWeight: 0.9007726
+    - serializedVersion: 3
+      time: 0.45
+      value: 1.5
+      inSlope: -0.003510976
+      outSlope: -0.003510976
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.53102994
+    - serializedVersion: 3
+      time: 0.55
+      value: 1.5
+      inSlope: -0.0028621526
+      outSlope: -0.0028621526
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 1
+    - serializedVersion: 3
+      time: 0.85
+      value: 1.01
+      inSlope: 0.00001581092
+      outSlope: 0.00001581092
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 1
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: -0.06666661
+      outSlope: -0.06666661
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panelHideSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.5
+      inSlope: 0.0666666
+      outSlope: 0.0666666
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.15
+      value: 0.51
+      inSlope: -0.0009048313
+      outSlope: -0.0009048313
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.84874535
+      outWeight: 0.9007726
+    - serializedVersion: 3
+      time: 0.45
+      value: 1
+      inSlope: -0.003510976
+      outSlope: -0.003510976
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.53102994
+    - serializedVersion: 3
+      time: 0.55
+      value: 1
+      inSlope: -0.0028621526
+      outSlope: -0.0028621526
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 1
+    - serializedVersion: 3
+      time: 0.85
+      value: 0.51
+      inSlope: 0.00001581092
+      outSlope: 0.00001581092
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 1
+    - serializedVersion: 3
+      time: 1
+      value: 0.5
+      inSlope: -0.06666661
+      outSlope: -0.06666661
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   queuePanelXOffset: 50
   queuePanelYOffset: 50
-  textBounceHeight: 5
-  textFlashTime: 0.1
+  textBounceHeight: 10
+  textFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  textFlashSpeed: 7
+  elementHideSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.1
+      inSlope: 0.19999996
+      outSlope: 0.19999996
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.05
+      value: 0.11
+      inSlope: 0.0031472156
+      outSlope: 0.0031472156
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.631472
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.25
+      value: 1.5
+      inSlope: -0.004640957
+      outSlope: -0.004640957
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.47666186
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1283667811
 GameObject:
   m_ObjectHideFlags: 0

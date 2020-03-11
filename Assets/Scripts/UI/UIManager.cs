@@ -10,6 +10,8 @@ public class UIManager : MonoBehaviour
     public static UIManager instance;
 
     [SerializeField] private GameObject queueElement;
+    [SerializeField] private GameObject deathPanel;
+    [Space]
     [SerializeField] private float queuePanelWidth;
 
     private Transform canvasTransform;
@@ -51,7 +53,12 @@ public class UIManager : MonoBehaviour
 
     public void DeathChange(int queueIndex)
     {
+        GameObject skull = Instantiate(deathPanel, Vector2.zero, Quaternion.identity, panelElements[queueIndex].transform);
+        RectTransform skullRect = skull.GetComponent<RectTransform>();
+        skullRect.anchoredPosition = Vector2.zero;
 
+        RectTransform elementRect = panelElements[queueIndex].GetComponent<RectTransform>();
+        StartCoroutine(UIAnimations.instance.HideElement(elementRect));
     }
 
     public void ClearQueue()

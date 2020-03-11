@@ -80,6 +80,9 @@ public class Unit : MonoBehaviour
     {
         if(health <= 0)
         {
+            int index = CombatManager.instance.GetObjectIndex(gameObject);
+            UIManager.instance.DeathChange(index);
+
             var box = transform.GetComponent<BoxCollider2D>();
             if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && box.bounds.Contains((Vector2)CursorManager.instance.transform.position))
             {
