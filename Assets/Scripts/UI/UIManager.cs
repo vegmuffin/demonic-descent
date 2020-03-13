@@ -56,8 +56,20 @@ public class UIManager : MonoBehaviour
         GameObject skull = Instantiate(deathPanel, Vector2.zero, Quaternion.identity, panelElements[queueIndex].transform);
         RectTransform skullRect = skull.GetComponent<RectTransform>();
         skullRect.anchoredPosition = Vector2.zero;
-
         RectTransform elementRect = panelElements[queueIndex].GetComponent<RectTransform>();
+
+        for(int i = queueIndex + 1; i < panelElements.Count; ++i)
+        {
+            RectTransform entry = panelElements[i].GetComponent<RectTransform>();
+            float yValue = entry.anchoredPosition.y + 100f;
+            Vector2 newPos = new Vector2(entry.anchoredPosition.x, yValue);
+            
+            RearrangementElement rearrangementElement = new RearrangementElement(entry.anchoredPosition, newPos, entry);
+            UIAnimations.instance.rearrangementElements.Add(rearrangementElement);
+        }
+
+        panelElements.RemoveAt(queueIndex);
+
         StartCoroutine(UIAnimations.instance.HideElement(elementRect));
     }
 
@@ -92,6 +104,11 @@ public class UIManager : MonoBehaviour
             nText.text = unitName;
             hText.text = unitHealth.ToString();
             cText.text = unitCombatPoints.ToString();
+
+            // Since the position are not driven by a layout group, we have to do it manually.
+            RectTransform elementRTransform = elementInstance.GetComponent<RectTransform>();
+            Vector2 newPos = new Vector2(queuePanelRTransform.anchoredPosition.x, queuePanelRTransform.anchoredPosition.y + (combatQueue.Count-panelElements.Count+1)*100f); // what the fuck
+            elementRTransform.anchoredPosition = newPos;
         }
     }
 }

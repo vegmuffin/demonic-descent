@@ -4,6 +4,20 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+public struct RearrangementElement{
+
+        public Vector2 startPos;
+        public Vector2 endPos;
+        public RectTransform rect;
+
+        public RearrangementElement(Vector2 startPos, Vector2 endPos, RectTransform rect)
+        {
+            this.startPos = startPos;
+            this.endPos = endPos;
+            this.rect = rect;
+        }
+}
+
 public class UIAnimations : MonoBehaviour
 {
     public static UIAnimations instance;
@@ -19,6 +33,9 @@ public class UIAnimations : MonoBehaviour
     [SerializeField] private float textFlashSpeed;
     [Header("Element hide animation")]
     [SerializeField] private AnimationCurve elementHideSpeedCurve;
+    [Header("Element rearrangement animation")]
+    [SerializeField] private AnimationCurve rearrangementSpeedCurve;
+    [HideInInspector] public List<RearrangementElement> rearrangementElements = new List<RearrangementElement>();
 
     private void Awake()
     {
@@ -99,8 +116,7 @@ public class UIAnimations : MonoBehaviour
             if(timer >= 1f)
             {
                 elementRect.anchoredPosition = endPos;
-                Destroy(elementRect.gameObject, 5f);
-                
+                StartCoroutine(RearrangeElements());
                 yield break;
             }
             else
@@ -108,6 +124,31 @@ public class UIAnimations : MonoBehaviour
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
         }
+    }
+
+    private IEnumerator RearrangeElements()
+    {
+        float timer = 0f;
+        while(timer <= 1f)
+        {
+
+            for(int i = 0; i < rearrangementElements.Count; ++i)
+                rearrangementElements[i].rect.anchoredPosition = Vector2.Lerp(rearrangementElements[i].startPos, rearrangementElements[i].endPos, timer);
+            
+            timer += Time.deltaTime * rearrangementSpeedCurve.Evaluate(timer);
+            if(timer >= 1f)
+            {
+                for(int i = 0; i < rearrangementElements.Count; ++i)
+                    rearrangementElements[i].rect.anchoredPosition = rearrangementElements[i].endPos;
+                yield break;
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(Time.deltaTime);
+            }
+
+        }
+        yield break;
     }
     
 

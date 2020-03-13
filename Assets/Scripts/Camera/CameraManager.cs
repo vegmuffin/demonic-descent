@@ -14,7 +14,7 @@ public class CameraManager : MonoBehaviour
         mainCamera = transform.GetComponent<Camera>();
     }
 
-    public void CameraShake(float angle, float magnitude, int frameCount)
+    public void CameraShake(float angle, float magnitude, float speed)
     {
         Vector3 startPos = transform.position;
 
@@ -25,16 +25,32 @@ public class CameraManager : MonoBehaviour
 
         Vector3 endPos = new Vector3(x, y, startPos.z);
         
-        StartCoroutine(ShakeForFrames(startPos, endPos, frameCount));
+        StartCoroutine(Shake(startPos, endPos, speed));
     }
 
-    private IEnumerator ShakeForFrames(Vector3 startPos, Vector3 endPos, int frames)
+    private IEnumerator Shake(Vector3 startPos, Vector3 endPos, float speed)
     {
-        transform.position = endPos;
-        for(int i = 0; i < frames; ++i)
-            yield return new WaitForSecondsRealtime(Time.deltaTime);
+        float timer = 0f;
+        while(timer <= 1f)
+        {
+            if(timer > 0.5f)
+                transform.position = Vector3.Lerp(endPos, startPos, timer);
+            else
+                transform.position = Vector3.Lerp(startPos, endPos, timer);
 
-        transform.position = startPos;
+            timer += Time.deltaTime * speed;
+
+            if(timer >= 1f)
+            {
+                transform.position = startPos;
+                yield break;
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(Time.deltaTime);
+            }
+        }
+
         yield break;
     }
 }
