@@ -19,18 +19,11 @@ public class CombatManager : MonoBehaviour
     [HideInInspector] public bool initiatingCombatState = false;
     private int currentIndex;
     [HideInInspector] public Tilemap movementTilemap;
-    private float waitTurnsTimer;
-    private float waitRoundsTimer;
-    private float afterAttackTimer;
-    private bool afterAttackBool = false;
     [HideInInspector] public string whoseTurn = string.Empty;
 
     private void Awake()
     {
         instance = this;
-        waitTurnsTimer = timeBetweenTurns;
-        waitRoundsTimer = timeBetweenRounds;
-        afterAttackTimer = 0;
         movementTilemap = GameObject.Find("MovementTilemap").GetComponent<Tilemap>();
     }
 
@@ -146,12 +139,12 @@ public class CombatManager : MonoBehaviour
 
     private IEnumerator WaitBetweenTurns()
     {
-        while(waitTurnsTimer > 0)
+        float timer = 0f;
+        while(timer < timeBetweenTurns)
         {
-            waitTurnsTimer -= Time.deltaTime;
-            if(waitTurnsTimer <= 0)
+            timer += Time.deltaTime;
+            if(timer >= timeBetweenTurns)
             {
-                waitTurnsTimer = timeBetweenTurns;
                 ExecuteTurns();
                 yield break;
             }
@@ -161,14 +154,21 @@ public class CombatManager : MonoBehaviour
 
     private IEnumerator WaitBetweenRounds()
     {
-        while(waitRoundsTimer > 0)
+        float timer = 0f;
+        while(timer < timeBetweenRounds)
         {
-            waitRoundsTimer -= Time.deltaTime;
-            if(waitRoundsTimer <= 0)
+            timer += Time.deltaTime;
+            if(timer >= timeBetweenRounds)
             {
-                waitRoundsTimer = timeBetweenRounds;
+                foreach(GameObject go in combatQueue)
+                {
+                    Unit goUnit = go.GetComponent<Unit>();
+                    goUnit.currentCombatPoints = goUnit.combatPoints;
+                }
+
                 if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
                     yield break;
+
                 ExecuteTurns();
                 yield break;
             }
@@ -179,13 +179,13 @@ public class CombatManager : MonoBehaviour
     // Overloading for the first time the combat starts since we have to set up additional things.
     private IEnumerator WaitBetweenRounds(bool combatStarting)
     {
-        while(waitRoundsTimer > 0)
+        float timer = 0f;
+        while(timer < timeBetweenRounds)
         {
-            waitRoundsTimer -= Time.deltaTime*2; // Not sure why I have to double
-            if(waitRoundsTimer <= 0)
+            timer += Time.deltaTime*2; // Not sure why I have to double
+            if(timer >= timeBetweenRounds)
             {
                 initiatingCombatState = false;
-                waitRoundsTimer = timeBetweenRounds;
 
                 QueueUnits();
                 UIManager.instance.InitiateQueueUI(combatQueue);
@@ -201,12 +201,12 @@ public class CombatManager : MonoBehaviour
 
     public IEnumerator WaitAfterAttack(Unit unit)
     {
-        while(afterAttackTimer < timeAfterAttack)
+        float timer = 0f;
+        while(timer < timeAfterAttack)
         {
-            afterAttackTimer += Time.deltaTime;
-            if(afterAttackTimer >= timeAfterAttack)
+            timer += Time.deltaTime;
+            if(timer >= timeAfterAttack)
             {
-                afterAttackTimer = 0;
                 // If not already in combat, enter it (for something like sneak attacks or distance attacks).
                 if(GameStateManager.instance.gameState == GameStateManager.GameStates.MOVING)
                 {

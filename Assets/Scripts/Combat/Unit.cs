@@ -54,9 +54,10 @@ public class Unit : MonoBehaviour
     private void AggroGrid()
     {
         Vector3Int pos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
-        MovementManager.instance.GenerateGrid(pos, combatPoints, movementTilemap, aggroColor);
+        MovementManager.instance.GenerateGrid(pos, aggroRange, movementTilemap, aggroColor);
     }
 
+    // Update mouse cursor.
     private void OnMouseOver()
     {
         if(isEnemy)
@@ -80,15 +81,15 @@ public class Unit : MonoBehaviour
     {
         if(health <= 0)
         {
+            // Calling UI to dispose of the dead unit.
             int index = CombatManager.instance.GetObjectIndex(gameObject);
             UIManager.instance.DeathChange(index);
 
+            // If the cursor is on the dying unit, update it. 
             var box = transform.GetComponent<BoxCollider2D>();
             if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && box.bounds.Contains((Vector2)CursorManager.instance.transform.position))
-            {
                 OnMouseExit();
-            }
-            // Play some animation
+
             isDying = true;
             MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), true);
             CombatManager.instance.RemoveFromQueue(transform.gameObject);
@@ -101,13 +102,25 @@ public class Unit : MonoBehaviour
         }
         else
         {
-            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
-            {   
+            // If it's not combat and we are attacking (out of range attacks, sneak attacks or something), initiate it.
+            if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+            {
+                GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
+                GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+
+                foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
+                    anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+
+                currentCombatPoints = combatPoints;
+                CombatManager.instance.InitiateCombat();
+            }
+            else
+            {
+                // We are not dying and it's combat, update UI and wait after attack.
                 int index = CombatManager.instance.GetObjectIndex(gameObject);
                 UIManager.instance.HealthChange(index, health);
+                StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }
-            
-            // Play some animation
         }
     }
 

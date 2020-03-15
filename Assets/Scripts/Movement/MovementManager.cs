@@ -23,9 +23,9 @@ public class MovementManager : MonoBehaviour
     private int distanceX;
     private int distanceY;
     private Vector3Int tempTilePos;
-    private Tilemap wallTilemap = default;
-    private Tilemap groundTilemap = default;
-    private Tilemap movementTilemap = default;
+    private Tilemap wallTilemap;
+    private Tilemap groundTilemap;
+    private Tilemap movementTilemap;
 
     private GameObject player;
     private UnitMovement playerMovement;

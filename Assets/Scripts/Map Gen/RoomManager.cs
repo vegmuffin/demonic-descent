@@ -17,7 +17,7 @@ public class RoomManager : MonoBehaviour
     [Header("Only odd numbers for intersection width to retain symmetry")]
     public int intersectionWidth;
     [Space]
-    [SerializeField] private float cameraPanSpeed = default;
+    [SerializeField] private AnimationCurve cameraPanSpeedCurve = default;
 
     private float xDistThreshold;
     private float yDistThreshold;
@@ -26,7 +26,6 @@ public class RoomManager : MonoBehaviour
 
     private bool isCameraPanning = false;
     private bool isInIntersection = false;
-    private float cameraTimer = 0f;
     private Transform cameraTransform;
     private Vector2 dir = Vector2.zero;
 
@@ -196,14 +195,14 @@ public class RoomManager : MonoBehaviour
 
     private IEnumerator CameraPan(Vector3 startPos, Vector3 endPos)
     {
-        while(cameraTimer <= 1f)
+        float timer = 0f;
+        while(timer <= 1f)
         {
-            cameraTransform.position = Vector3.Lerp(startPos, endPos, cameraTimer);
-            cameraTimer += Time.deltaTime * cameraPanSpeed;
+            cameraTransform.position = Vector3.Lerp(startPos, endPos, timer);
+            timer += Time.deltaTime * cameraPanSpeedCurve.Evaluate(timer);
 
-            if(cameraTimer >= 1f)
+            if(timer >= 1f)
             {
-                cameraTimer = 0;
                 cameraTransform.position = endPos;
                 isCameraPanning = false;
                 isInIntersection = !isInIntersection;

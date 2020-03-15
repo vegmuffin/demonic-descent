@@ -9,16 +9,15 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
 
-    [SerializeField] private GameObject queueElement;
-    [SerializeField] private GameObject deathPanel;
+    [SerializeField] private GameObject queueElement = default;
+    [SerializeField] private GameObject deathPanel = default;
     [Space]
-    [SerializeField] private float queuePanelWidth;
+    [SerializeField] private float queuePanelWidth = default;
 
     private Transform canvasTransform;
     private Transform queuePanel;
     private RectTransform queuePanelRTransform;
     private List<GameObject> panelElements = new List<GameObject>();
-    private float panelTimer = 0f;
 
     private void Awake()
     {
@@ -71,11 +70,6 @@ public class UIManager : MonoBehaviour
         panelElements.RemoveAt(queueIndex);
 
         StartCoroutine(UIAnimations.instance.HideElement(elementRect));
-    }
-
-    public void ClearQueue()
-    {
-
     }
 
     private void PopulateQueueUI(List<GameObject> combatQueue)

@@ -6,10 +6,10 @@ public class CursorManager : MonoBehaviour
 {
     public static CursorManager instance;
 
-    [SerializeField] private Sprite defaultCursor;
-    [SerializeField] private Sprite attackCursor;
-    [SerializeField] private Sprite moveCursor;
-    [SerializeField] private Sprite castCursor;
+    [SerializeField] private Sprite defaultCursor = default;
+    [SerializeField] private Sprite attackCursor = default;
+    [SerializeField] private Sprite moveCursor = default;
+    [SerializeField] private Sprite castCursor = default;
 
     private Camera mainCamera;
     private SpriteRenderer realCursor;

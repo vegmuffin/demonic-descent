@@ -23,18 +23,18 @@ public class UIAnimations : MonoBehaviour
     public static UIAnimations instance;
 
     [Header("Panel show/hide animation")]
-    [SerializeField] private AnimationCurve panelShowSpeedCurve;
-    [SerializeField] private AnimationCurve panelHideSpeedCurve;
-    [SerializeField] private float queuePanelXOffset;
-    [SerializeField] private float queuePanelYOffset;
+    [SerializeField] private AnimationCurve panelShowSpeedCurve = default;
+    [SerializeField] private AnimationCurve panelHideSpeedCurve = default;
+    [SerializeField] private float queuePanelXOffset = default;
+    [SerializeField] private float queuePanelYOffset = default;
     [Header("Damage UI text animation")]
-    [SerializeField] private float textBounceHeight;
-    [SerializeField] private Color textFlashColor;
-    [SerializeField] private float textFlashSpeed;
+    [SerializeField] private float textBounceHeight = default;
+    [SerializeField] private Color textFlashColor = default;
+    [SerializeField] private float textFlashSpeed = default;
     [Header("Element hide animation")]
-    [SerializeField] private AnimationCurve elementHideSpeedCurve;
+    [SerializeField] private AnimationCurve elementHideSpeedCurve = default;
     [Header("Element rearrangement animation")]
-    [SerializeField] private AnimationCurve rearrangementSpeedCurve;
+    [SerializeField] private AnimationCurve rearrangementSpeedCurve = default;
     [HideInInspector] public List<RearrangementElement> rearrangementElements = new List<RearrangementElement>();
 
     private void Awake()
@@ -69,6 +69,7 @@ public class UIAnimations : MonoBehaviour
         }
     }
 
+    // I'll have to get right on this since right now the combat ends when one unit is left in combat -- it is not a smooth experience.
     public IEnumerator HideQueue(RectTransform elementRect)
     {
         float timer = 0f;
@@ -129,25 +130,31 @@ public class UIAnimations : MonoBehaviour
     private IEnumerator RearrangeElements()
     {
         float timer = 0f;
-        while(timer <= 1f)
+        if(rearrangementElements.Count != 0)
         {
-
-            for(int i = 0; i < rearrangementElements.Count; ++i)
-                rearrangementElements[i].rect.anchoredPosition = Vector2.Lerp(rearrangementElements[i].startPos, rearrangementElements[i].endPos, timer);
-            
-            timer += Time.deltaTime * rearrangementSpeedCurve.Evaluate(timer);
-            if(timer >= 1f)
+            while(timer <= 1f)
             {
                 for(int i = 0; i < rearrangementElements.Count; ++i)
-                    rearrangementElements[i].rect.anchoredPosition = rearrangementElements[i].endPos;
-                yield break;
+                    rearrangementElements[i].rect.anchoredPosition = Vector2.Lerp(rearrangementElements[i].startPos, rearrangementElements[i].endPos, timer);
+                
+                timer += Time.deltaTime * rearrangementSpeedCurve.Evaluate(timer);
+                if(timer >= 1f)
+                {
+                    for(int i = 0; i < rearrangementElements.Count; ++i)
+                        rearrangementElements[i].rect.anchoredPosition = rearrangementElements[i].endPos;
+                }
+                else
+                {
+                    yield return new WaitForSecondsRealtime(Time.deltaTime);
+                }
             }
-            else
-            {
-                yield return new WaitForSecondsRealtime(Time.deltaTime);
-            }
-
         }
+
+        if(CombatManager.instance.currentUnit.currentCombatPoints <= 0)
+            CombatManager.instance.NextTurn();
+        else
+            CombatManager.instance.ExecuteTurns();
+
         yield break;
     }
     
