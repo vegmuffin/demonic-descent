@@ -15,6 +15,7 @@ public class CombatManager : MonoBehaviour
     [HideInInspector] public List<GameObject> enemyList = new List<GameObject>();
     [HideInInspector] public List<GameObject> combatQueue = new List<GameObject>();
     [HideInInspector] public Unit currentUnit = null;
+    public AnimationCurve cameraShakeSpeedCurve;
 
     [HideInInspector] public bool initiatingCombatState = false;
     private int currentIndex;
@@ -96,6 +97,7 @@ public class CombatManager : MonoBehaviour
     // Increase our combat queue index and give some time so it won't be chaotic-looking.
     public void NextTurn()
     {
+        UIManager.instance.updatingCombatPoints = null;
         ++currentIndex;
         if(currentIndex == combatQueue.Count)
         {
@@ -150,6 +152,8 @@ public class CombatManager : MonoBehaviour
             }
             yield return new WaitForSecondsRealtime(Time.deltaTime);
         }
+
+        yield break;
     }
 
     private IEnumerator WaitBetweenRounds()
@@ -160,6 +164,8 @@ public class CombatManager : MonoBehaviour
             timer += Time.deltaTime;
             if(timer >= timeBetweenRounds)
             {
+                UIManager.instance.RefreshCombatPoints();
+
                 foreach(GameObject go in combatQueue)
                 {
                     Unit goUnit = go.GetComponent<Unit>();
@@ -174,6 +180,7 @@ public class CombatManager : MonoBehaviour
             }
             yield return new WaitForSecondsRealtime(Time.deltaTime);
         }
+        yield break;
     }
 
     // Overloading for the first time the combat starts since we have to set up additional things.
@@ -197,6 +204,7 @@ public class CombatManager : MonoBehaviour
             }
             yield return new WaitForSecondsRealtime(Time.deltaTime);
         }
+        yield break;
     }
 
     public IEnumerator WaitAfterAttack(Unit unit)
@@ -239,6 +247,8 @@ public class CombatManager : MonoBehaviour
             }
             yield return new WaitForSecondsRealtime(Time.deltaTime);
         }
+
+        yield break;
     }
 
     public int GetObjectIndex(GameObject go)

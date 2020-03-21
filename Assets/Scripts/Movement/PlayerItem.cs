@@ -15,11 +15,22 @@ public class PlayerItem : MonoBehaviour
 
     [HideInInspector] public GameObject target;
 
+    private Vector3 primarylocalPosition;
+    private Quaternion primaryRotation;
+
     private void Awake()
     {
         childItem = transform.GetChild(0);
+        primarylocalPosition = childItem.localPosition;
+        primaryRotation = childItem.rotation;
         childTrail = childItem.GetComponent<TrailRenderer>();
+        childTrail.emitting = false;
         childSprite = childItem.GetComponent<SpriteRenderer>();
+    }
+
+    private void Update()
+    {
+        //Debug.Log(primaryPosition);
     }
 
     private void Collision()
@@ -29,8 +40,9 @@ public class PlayerItem : MonoBehaviour
 
         if(CheckDistance(itemPos, targetPos))
         {
+            Debug.Log("derp");
             CancelInvoke("Collision");
-            transform.GetComponent<UnitMovement>().OnAttackAnimation();
+            transform.GetComponent<UnitMovement>().OnAttackAnimation(childItem.localRotation.eulerAngles.z);
             StartCoroutine(FadeOut());
         }
     }
@@ -80,9 +92,9 @@ public class PlayerItem : MonoBehaviour
                 float y = endPos.y + 5.5f * Mathf.Sin(angle);
                 Vector2 targetPos = new Vector2(x, y);
 
-                childTrail.enabled = true;
+                childTrail.emitting = true;
 
-                InvokeRepeating("Collision", 0.1f, 0.1f);
+                InvokeRepeating("Collision", 0.03f, 0.03f);
 
                 yield return StartCoroutine(Strike(endPos, targetPos));
             }
@@ -99,12 +111,14 @@ public class PlayerItem : MonoBehaviour
         float timer = 0f;
         while(timer <= 1f)
         {
-            Debug.Log(timer);
             childItem.localPosition = Vector2.Lerp(startPos, endPos, timer);
 
             timer += Time.deltaTime * strikeSpeedCurve.Evaluate(timer);
             if(timer >= 1f)
             {
+                childItem.localPosition = primarylocalPosition;
+                childItem.rotation = primaryRotation;
+
                 yield break;
             }
             else
@@ -121,15 +135,20 @@ public class PlayerItem : MonoBehaviour
         Color startColor = childSprite.color;
         Color endColor = new Color(255, 255, 255, 0);
 
+        GradientAlphaKey alphaKey = childTrail.colorGradient.alphaKeys[0];
+        float startAlpha = alphaKey.alpha;
+        float endAlpha = 10f;
+
         while(timer <= 1f)
         {
             childSprite.color = Color.Lerp(startColor, endColor, timer);
+            alphaKey.alpha = Mathf.Lerp(startAlpha, endAlpha, timer);
 
             timer += Time.deltaTime * fadeOutSpeedCurve.Evaluate(timer);
             if(timer >= 1f)
             {
-                childSprite.color = endColor;
-                //childTrail.Clear();
+                childTrail.emitting = false;
+                childSprite.color = startColor;
 
                 yield break;
             }
@@ -143,7 +162,7 @@ public class PlayerItem : MonoBehaviour
 
     private bool CheckDistance(Vector2 pointA, Vector2 pointB)
     {
-        return (pointA - pointB).sqrMagnitude < 1*1 ? true : false;
+        return (pointA - pointB).sqrMagnitude < 0.4*0.4 ? true : false;
     }
 
 }

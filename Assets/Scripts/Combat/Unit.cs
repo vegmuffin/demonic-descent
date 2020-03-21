@@ -26,8 +26,11 @@ public class Unit : MonoBehaviour
     private void Awake()
     {
         currentCombatPoints = combatPoints;
-        if(!isEnemy)
+        if(transform.tag == "Player")
+        {
             thisAnimator = transform.GetComponent<Animator>();
+            UIManager.instance.InitiatePlayerUI(health, combatPoints, damage);
+        }
     }
 
     private void Start()
@@ -117,8 +120,12 @@ public class Unit : MonoBehaviour
             else
             {
                 // We are not dying and it's combat, update UI and wait after attack.
+                bool isPlayer = false;
+                if(transform.tag == "Player")
+                    isPlayer = true;
+
                 int index = CombatManager.instance.GetObjectIndex(gameObject);
-                UIManager.instance.HealthChange(index, health);
+                UIManager.instance.HealthChange(index, health, isPlayer);
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }
         }

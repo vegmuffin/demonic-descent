@@ -213,6 +213,8 @@ public class RoomManager : MonoBehaviour
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
         }
+
+        yield break;
     }
 
     private Room GetRoom(Vector2 roomPos)

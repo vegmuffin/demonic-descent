@@ -14,10 +14,12 @@ public class CameraManager : MonoBehaviour
         mainCamera = transform.GetComponent<Camera>();
     }
 
-    public void CameraShake(float angle, float magnitude, float speed)
+    public void CameraShake(float angle, float magnitude)
     {
         Vector3 startPos = transform.position;
 
+        Debug.Log("Angle: " + angle);
+        angle *= Mathf.Deg2Rad;
         float x = startPos.x;
         float y = startPos.y;
         x += magnitude * Mathf.Cos(angle);
@@ -25,12 +27,13 @@ public class CameraManager : MonoBehaviour
 
         Vector3 endPos = new Vector3(x, y, startPos.z);
         
-        StartCoroutine(Shake(startPos, endPos, speed));
+        StartCoroutine(Shake(startPos, endPos));
     }
 
-    private IEnumerator Shake(Vector3 startPos, Vector3 endPos, float speed)
+    private IEnumerator Shake(Vector3 startPos, Vector3 endPos)
     {
         float timer = 0f;
+        AnimationCurve curveRef = CombatManager.instance.cameraShakeSpeedCurve;
         while(timer <= 1f)
         {
             if(timer > 0.5f)
@@ -38,7 +41,7 @@ public class CameraManager : MonoBehaviour
             else
                 transform.position = Vector3.Lerp(startPos, endPos, timer);
 
-            timer += Time.deltaTime * speed;
+            timer += Time.deltaTime * CombatManager.instance.cameraShakeSpeedCurve.Evaluate(timer);
 
             if(timer >= 1f)
             {

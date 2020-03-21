@@ -264,7 +264,7 @@ MonoBehaviour:
   isEnemy: 1
   health: 3
   combatPoints: 4
-  damage: 1
+  damage: 3
   acronym: SKE
   aggroRange: 4
   deathTime: 0.5

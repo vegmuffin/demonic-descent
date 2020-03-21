@@ -38,6 +38,12 @@ public class UnitMovement : MonoBehaviour
                     unit.PlayAnimation(lastDirection, "Idle", 0.5f);
                 yield break;
             }
+            
+            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+            {
+                unit.currentCombatPoints -= 1;
+                UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
+            }
 
             // Get next grid node.
             Vector2 futurePos = new Vector2(path[remainingMoves].x, path[remainingMoves].y);
@@ -74,7 +80,7 @@ public class UnitMovement : MonoBehaviour
 
                 // ------------------ HAS TO BE CHANGED WHEN THERE ARE ENEMY ANIMATIONS IN PLACE
                 if(unit.tag == "Enemy")
-                    OnAttackAnimation();
+                    OnAttackAnimation(0f);
                 else
                 {
                     var item = transform.GetComponent<PlayerItem>();
@@ -106,19 +112,21 @@ public class UnitMovement : MonoBehaviour
             GameStateManager.instance.previousGameState = temp;
         }
         
+        yield break;
     }
 
     // This is triggered by the animation event.
-    public void OnAttackAnimation()
+    public void OnAttackAnimation(float angle)
     {
         unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
+        UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
 
         // Updating health and calling the OnDamage method.
         var targetUnit = target.GetComponent<Unit>();
         targetUnit.health -= unit.damage;
         targetUnit.OnDamage();
 
-        InitiateCameraShake();
+        CameraManager.instance.CameraShake(angle, 0.8f);
     }
 
     // The inner enumerator is lerping from one grid node to the other to make smooth movement.
@@ -156,6 +164,8 @@ public class UnitMovement : MonoBehaviour
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
         }
+
+        yield break;
     }
 
     private bool CheckEngagement()
@@ -186,18 +196,6 @@ public class UnitMovement : MonoBehaviour
             lastDirection = Vector2.down;
         else if(current.y < target.y)
             lastDirection = Vector2.up;
-    }
-
-    private void InitiateCameraShake()
-    {
-        Vector3 playerPos = transform.position;
-        Vector3 unitPos = target.transform.position;
-        float x1 = unitPos.x;
-        float y1 = unitPos.y;
-        float x2 = playerPos.x;
-        float y2 = playerPos.y;
-        float angle = Mathf.Atan2(y1 - y2, x1 - x2)*180f / Mathf.PI;
-        CameraManager.instance.CameraShake(angle, 0.2f, 15f);
     }
 
 }

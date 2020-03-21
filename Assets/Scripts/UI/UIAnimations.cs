@@ -67,6 +67,8 @@ public class UIAnimations : MonoBehaviour
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
         }
+
+        yield break;
     }
 
     // I'll have to get right on this since right now the combat ends when one unit is left in combat -- it is not a smooth experience.
@@ -98,6 +100,8 @@ public class UIAnimations : MonoBehaviour
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
         }
+
+        yield break;
     }
 
     public IEnumerator HideElement(RectTransform elementRect)
@@ -125,6 +129,8 @@ public class UIAnimations : MonoBehaviour
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
         }
+
+        yield break;
     }
 
     private IEnumerator RearrangeElements()
@@ -192,8 +198,8 @@ public class UIAnimations : MonoBehaviour
             else
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
         }
-        
-        
         yield break;
     }
+
+
 }
