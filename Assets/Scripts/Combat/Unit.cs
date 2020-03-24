@@ -124,8 +124,11 @@ public class Unit : MonoBehaviour
                 if(transform.tag == "Player")
                     isPlayer = true;
 
-                int index = CombatManager.instance.GetObjectIndex(gameObject);
-                UIManager.instance.HealthChange(index, health, isPlayer);
+                if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+                {
+                    int index = CombatManager.instance.GetObjectIndex(gameObject);
+                    UIManager.instance.HealthChange(index, health, isPlayer);
+                }
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }
         }

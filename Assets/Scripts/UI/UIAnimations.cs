@@ -148,6 +148,8 @@ public class UIAnimations : MonoBehaviour
                 {
                     for(int i = 0; i < rearrangementElements.Count; ++i)
                         rearrangementElements[i].rect.anchoredPosition = rearrangementElements[i].endPos;
+
+                    rearrangementElements.Clear();
                 }
                 else
                 {

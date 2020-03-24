@@ -71,8 +71,6 @@ public class UnitMovement : MonoBehaviour
         // If it's combat or if we are attacking, proceed further.
         if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState) || isAttacking)
         {
-            unit.currentCombatPoints -= combatPoints;
-
             // If we are attacking (regardless of combat or not), play attack animations.
             if(isAttacking && target != null)
             {
@@ -118,8 +116,11 @@ public class UnitMovement : MonoBehaviour
     // This is triggered by the animation event.
     public void OnAttackAnimation(float angle)
     {
-        unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
-        UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
+        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+        {
+            unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
+            UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
+        }
 
         // Updating health and calling the OnDamage method.
         var targetUnit = target.GetComponent<Unit>();

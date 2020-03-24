@@ -17,6 +17,7 @@ public class PlayerItem : MonoBehaviour
 
     private Vector3 primarylocalPosition;
     private Quaternion primaryRotation;
+    private bool shouldCheckCollision = false;
 
     private void Awake()
     {
@@ -28,23 +29,27 @@ public class PlayerItem : MonoBehaviour
         childSprite = childItem.GetComponent<SpriteRenderer>();
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        //Debug.Log(primaryPosition);
+        Collision();
     }
 
     private void Collision()
     {
-        Vector2 itemPos = childItem.position;
-        Vector2 targetPos = target.transform.position;
-
-        if(CheckDistance(itemPos, targetPos))
+        if(shouldCheckCollision)
         {
-            Debug.Log("derp");
-            CancelInvoke("Collision");
-            transform.GetComponent<UnitMovement>().OnAttackAnimation(childItem.localRotation.eulerAngles.z);
-            StartCoroutine(FadeOut());
+            Vector2 itemPos = childItem.position;
+            Vector2 targetPos = target.transform.position;
+
+            if(CheckDistance(itemPos, targetPos))
+            {
+                Debug.Log("derp");
+                shouldCheckCollision = false;
+                transform.GetComponent<UnitMovement>().OnAttackAnimation(childItem.localRotation.eulerAngles.z);
+                StartCoroutine(FadeOut());
+            }
         }
+        
     }
 
     public void BasicAttack(Vector2 dir, Vector2 targetPos)
@@ -94,7 +99,7 @@ public class PlayerItem : MonoBehaviour
 
                 childTrail.emitting = true;
 
-                InvokeRepeating("Collision", 0.03f, 0.03f);
+                shouldCheckCollision = true;
 
                 yield return StartCoroutine(Strike(endPos, targetPos));
             }
@@ -162,7 +167,8 @@ public class PlayerItem : MonoBehaviour
 
     private bool CheckDistance(Vector2 pointA, Vector2 pointB)
     {
-        return (pointA - pointB).sqrMagnitude < 0.4*0.4 ? true : false;
+        Debug.Log("Checking.. " + target.transform.position);
+        return (pointA - pointB).sqrMagnitude < 0.8*0.8 ? true : false;
     }
 
 }
