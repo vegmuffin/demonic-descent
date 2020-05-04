@@ -6,16 +6,16 @@ using TMPro;
 
 public struct RearrangementElement{
 
-        public Vector2 startPos;
-        public Vector2 endPos;
-        public RectTransform rect;
+    public Vector2 startPos;
+    public Vector2 endPos;
+    public RectTransform rect;
 
-        public RearrangementElement(Vector2 startPos, Vector2 endPos, RectTransform rect)
-        {
-            this.startPos = startPos;
-            this.endPos = endPos;
-            this.rect = rect;
-        }
+    public RearrangementElement(Vector2 startPos, Vector2 endPos, RectTransform rect)
+    {
+        this.startPos = startPos;
+        this.endPos = endPos;
+        this.rect = rect;
+    }
 }
 
 public class UIAnimations : MonoBehaviour
@@ -36,6 +36,11 @@ public class UIAnimations : MonoBehaviour
     [Header("Element rearrangement animation")]
     [SerializeField] private AnimationCurve rearrangementSpeedCurve = default;
     [HideInInspector] public List<RearrangementElement> rearrangementElements = new List<RearrangementElement>();
+    [Header("Tooltip animation")]
+    public float tooltipThreshold;
+    public Color endTooltipColor;
+    public Color startTooltipColor;
+    public float tooltipFadeInRate;
 
     private void Awake()
     {

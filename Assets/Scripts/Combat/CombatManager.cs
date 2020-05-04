@@ -12,10 +12,12 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private float timeBetweenTurns = default;
     [SerializeField] private float timeBetweenRounds = default;
     [SerializeField] private float timeAfterAttack = default;
+    public AnimationCurve cameraShakeSpeedCurve;
+    public float flashSpriteRate;
+
     [HideInInspector] public List<GameObject> enemyList = new List<GameObject>();
     [HideInInspector] public List<GameObject> combatQueue = new List<GameObject>();
     [HideInInspector] public Unit currentUnit = null;
-    public AnimationCurve cameraShakeSpeedCurve;
 
     [HideInInspector] public bool initiatingCombatState = false;
     private int currentIndex;
@@ -42,6 +44,10 @@ public class CombatManager : MonoBehaviour
     {
         initiatingCombatState = true;
         StartCoroutine(WaitBetweenRounds(true));
+
+        // Creating a log entry.
+        string logEntry = "Battle is starting!";
+        UILog.instance.NewLogEntry(logEntry);
     }
 
     // Getting all the units in the game (again, later on only in the current room) and queueing them based on the combat points.
@@ -87,6 +93,7 @@ public class CombatManager : MonoBehaviour
             Vector3Int playerPos = new Vector3Int((int)combatQueue[currentIndex].transform.position.x, (int)combatQueue[currentIndex].transform.position.y, 0);
             int speed = currentUnit.currentCombatPoints;
             MovementManager.instance.GenerateGrid(playerPos, speed, movementTilemap, movementColor);
+            UIActionPanel.instance.EnableDisableButtons(true);
         }
         else if(whoseTurn == "Skeleton")
         {
@@ -97,6 +104,11 @@ public class CombatManager : MonoBehaviour
     // Increase our combat queue index and give some time so it won't be chaotic-looking.
     public void NextTurn()
     {
+        if(combatQueue[currentIndex].tag == "Player")
+        {
+            UIActionPanel.instance.EnableDisableButtons(false);
+        }
+
         UIManager.instance.updatingCombatPoints = null;
         ++currentIndex;
         if(currentIndex == combatQueue.Count)
@@ -133,10 +145,13 @@ public class CombatManager : MonoBehaviour
 
     private void EndCombat()
     {
-        GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-        GameStateManager.instance.gameState = GameStateManager.GameStates.EXPLORING;
+        GameStateManager.instance.ChangeState("EXPLORING");
         combatQueue.Clear();
         UIManager.instance.EndQueueUI();
+
+        // Creating a log entry.
+        string logEntry = "Battle ends with a victory!";
+        UILog.instance.NewLogEntry(logEntry);
     }
 
     private IEnumerator WaitBetweenTurns()
@@ -172,7 +187,7 @@ public class CombatManager : MonoBehaviour
                     goUnit.currentCombatPoints = goUnit.combatPoints;
                 }
 
-                if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                if(!GameStateManager.instance.CheckState("COMBAT"))
                     yield break;
 
                 ExecuteTurns();
@@ -199,6 +214,7 @@ public class CombatManager : MonoBehaviour
                 
                 currentIndex = 0;
                 whoseTurn = combatQueue[currentIndex].name;
+                CursorManager.instance.combatPointsIndicator.gameObject.SetActive(true);
                 ExecuteTurns();
                 yield break;
             }
@@ -216,12 +232,11 @@ public class CombatManager : MonoBehaviour
             if(timer >= timeAfterAttack)
             {
                 // If not already in combat, enter it (for something like sneak attacks or distance attacks).
-                if(GameStateManager.instance.gameState == GameStateManager.GameStates.MOVING)
+                if(GameStateManager.instance.CheckState("MOVING"))
                 {
                     if(combatQueue.Count != 0)
                     {
-                        GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-                        GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+                        GameStateManager.instance.ChangeState("COMBAT");
 
                         foreach(GameObject enemy in CombatManager.instance.enemyList)
                             enemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
@@ -231,7 +246,7 @@ public class CombatManager : MonoBehaviour
                     }
                     
                 }
-                else if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+                else if(!GameStateManager.instance.CheckState("COMBAT"))
                 {
                     yield break;
                 }

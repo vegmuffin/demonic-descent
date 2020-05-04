@@ -11,6 +11,7 @@ public class Unit : MonoBehaviour
     public int combatPoints;
     public int damage;
     public string acronym;
+    public string realName;
     [SerializeField] private int aggroRange = default;
     [SerializeField] private float deathTime = default;
 
@@ -23,6 +24,10 @@ public class Unit : MonoBehaviour
     private Animator thisAnimator;
     private string lookDir = "Front";
 
+    private SpriteRenderer spriteRenderer;
+    private Shader defaultShader;
+    private Shader flashShader;
+
     private void Awake()
     {
         currentCombatPoints = combatPoints;
@@ -31,6 +36,10 @@ public class Unit : MonoBehaviour
             thisAnimator = transform.GetComponent<Animator>();
             UIManager.instance.InitiatePlayerUI(health, combatPoints, damage);
         }
+        spriteRenderer = transform.GetComponent<SpriteRenderer>();
+
+        defaultShader = Shader.Find("Sprites/Default");
+        flashShader = Shader.Find("GUI/Text Shader");
     }
 
     private void Start()
@@ -68,9 +77,15 @@ public class Unit : MonoBehaviour
             if(CursorManager.instance.currentState != CursorManager.CursorStates.ATTACK)
             {
                 if(isDying)
+                {
+                    CursorManager.instance.SetCursor("DEFAULT");
                     CursorManager.instance.currentState = CursorManager.CursorStates.DEFAULT;
+                }  
                 else
+                {
                     CursorManager.instance.currentState = CursorManager.CursorStates.ATTACK;
+                    CursorManager.instance.SetCursor("ATTACK");
+                }
             }
         }
     }
@@ -78,17 +93,26 @@ public class Unit : MonoBehaviour
     private void OnMouseExit()
     {
         CursorManager.instance.currentState = CursorManager.CursorStates.DEFAULT;
+        CursorManager.instance.SetCursor("DEFAULT");
+        CursorManager.instance.SetAttackCursorDir("left");
     }
 
-    public void OnDamage()
+    public void OnDamage(Unit damageDealer, int damageAmount)
     {
+        this.health -= damageAmount;
+        StartCoroutine(FlashSprite());
+
         if(health <= 0)
         {
+            // Creating a log entry.
+            string logEntry = "<color=#3399FF>" + damageDealer.realName + "</color> killed <color=#FF9900>" + this.realName + "</color> with a final blow of <color=#FF3333>" + damageAmount + "</color> damage!";
+            UILog.instance.NewLogEntry(logEntry);
+
             // Calling UI to dispose of the dead unit.
             int index = CombatManager.instance.GetObjectIndex(gameObject);
             UIManager.instance.DeathChange(index);
 
-            // If the cursor is on the dying unit, update it. 
+            // If the cursor is on the dying unit, update it. NEEDS TO BE UPDATED SINCE NOW THE CURSOR IS AN OVERLAY IMAGE.
             var box = transform.GetComponent<BoxCollider2D>();
             if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && box.bounds.Contains((Vector2)CursorManager.instance.transform.position))
                 OnMouseExit();
@@ -98,6 +122,7 @@ public class Unit : MonoBehaviour
             CombatManager.instance.RemoveFromQueue(transform.gameObject);
             Destroy(transform.parent.gameObject, deathTime);
 
+
             if(gameObject.name == "Player")
             {
                 Debug.Log("Game over!");
@@ -106,10 +131,9 @@ public class Unit : MonoBehaviour
         else
         {
             // If it's not combat and we are attacking (out of range attacks, sneak attacks or something), initiate it.
-            if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+            if(!GameStateManager.instance.CheckState("COMBAT"))
             {
-                GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-                GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+                GameStateManager.instance.ChangeState("COMBAT");
 
                 foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
                     anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
@@ -124,13 +148,17 @@ public class Unit : MonoBehaviour
                 if(transform.tag == "Player")
                     isPlayer = true;
 
-                if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+                if(GameStateManager.instance.CheckState("COMBAT"))
                 {
                     int index = CombatManager.instance.GetObjectIndex(gameObject);
                     UIManager.instance.HealthChange(index, health, isPlayer);
                 }
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }
+
+            // Creating a log entry.
+            string logEntry = "<color=#3399FF>" + damageDealer.realName + "</color> dealt <color=#FF3333>" + damageAmount + "</color> damage to <color=#FF9900>" + this.realName + "</color>.";
+            UILog.instance.NewLogEntry(logEntry);
         }
     }
 
@@ -179,5 +207,34 @@ public class Unit : MonoBehaviour
             PlayAnimation(Vector2.down, idleName, 0.5f);
         else if(lookDir == "Back")
             PlayAnimation(Vector2.up, idleName, 0.5f);
+    }
+
+    private IEnumerator FlashSprite()
+    {
+        float timer = 0f;
+        float flashRate = CombatManager.instance.flashSpriteRate;
+
+        // Flashing the sprite white using a different shader.
+        spriteRenderer.material.shader = flashShader;
+        Color revertColor = spriteRenderer.color;
+        spriteRenderer.color = Color.white;
+
+        while(timer <= 1f)
+        {
+            timer += Time.deltaTime * flashRate;
+
+            if(timer >= 1f)
+            {
+                spriteRenderer.material.shader = defaultShader;
+                spriteRenderer.color = revertColor;
+                yield break;
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(Time.deltaTime);
+            }
+        }
+
+        yield break;
     }
 }

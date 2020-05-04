@@ -29,17 +29,17 @@ public class UnitMovement : MonoBehaviour
         while(remainingMoves < combatPoints)
         {
             // If combat has been initiated, we have to come to a stop.
-            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && CombatManager.instance.initiatingCombatState)
+            if(GameStateManager.instance.CheckState("COMBAT") && CombatManager.instance.initiatingCombatState)
             {
                 isMoving = false;
                 MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
                 MovementManager.instance.UpdateTileWalkability(startNode, true);
-                if(tr.tag == "Player")
-                    unit.PlayAnimation(lastDirection, "Idle", 0.5f);
+                /* if(tr.tag == "Player")
+                    unit.PlayAnimation(lastDirection, "Idle", 0.5f); */
                 yield break;
             }
             
-            if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+            if(GameStateManager.instance.CheckState("COMBAT"))
             {
                 unit.currentCombatPoints -= 1;
                 UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
@@ -50,8 +50,8 @@ public class UnitMovement : MonoBehaviour
 
             // Updating variables.
             UpdateDirection(new Vector3Int((int)tr.position.x, (int)transform.position.y, 0), path[remainingMoves]);
-            if(!unit.isEnemy)
-                unit.PlayAnimation(lastDirection, "Moving", 2);
+            /* if(!unit.isEnemy)
+                unit.PlayAnimation(lastDirection, "Moving", 2); */
 
             ++remainingMoves;
 
@@ -59,8 +59,8 @@ public class UnitMovement : MonoBehaviour
             yield return StartCoroutine(MoveLerp(tr.position, futurePos));
         }
 
-        if(!isAttacking && tr.tag == "Player")
-            unit.PlayAnimation(lastDirection, "Idle", 0.5f);
+        /* if(!isAttacking && tr.tag == "Player")
+            unit.PlayAnimation(lastDirection, "Idle", 0.5f); */
         isMoving = false;
 
         // Updating past and current tiles.
@@ -69,7 +69,7 @@ public class UnitMovement : MonoBehaviour
             MovementManager.instance.UpdateTileWalkability(startNode, true);
 
         // If it's combat or if we are attacking, proceed further.
-        if((GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT && !CombatManager.instance.initiatingCombatState) || isAttacking)
+        if((GameStateManager.instance.CheckState("COMBAT") && !CombatManager.instance.initiatingCombatState) || isAttacking)
         {
             // If we are attacking (regardless of combat or not), play attack animations.
             if(isAttacking && target != null)
@@ -77,14 +77,9 @@ public class UnitMovement : MonoBehaviour
                 UpdateDirection(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), new Vector3Int((int)target.transform.position.x, (int)target.transform.position.y, 0));
 
                 // ------------------ HAS TO BE CHANGED WHEN THERE ARE ENEMY ANIMATIONS IN PLACE
-                if(unit.tag == "Enemy")
-                    OnAttackAnimation(0f);
-                else
-                {
-                    var item = transform.GetComponent<PlayerItem>();
-                    item.target = target;
-                    item.BasicAttack(lastDirection, target.transform.position);
-                }
+                var item = transform.GetComponent<AttackItem>();
+                item.target = target;
+                item.BasicAttack(lastDirection, target.transform.position);
                     
             }
             // If we are not attacking, that means we have reached the target grid node. Check if we still have combat points.
@@ -103,11 +98,9 @@ public class UnitMovement : MonoBehaviour
             }
         }
         // If it's not Combat and we are not attacking, update game states back from MOVING to EXPLORING.
-        else if(GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+        else if(!GameStateManager.instance.CheckState("COMBAT"))
         {
-            var temp = GameStateManager.instance.gameState;
-            GameStateManager.instance.gameState = GameStateManager.instance.previousGameState;
-            GameStateManager.instance.previousGameState = temp;
+            GameStateManager.instance.ChangeState("EXPLORING");
         }
         
         yield break;
@@ -116,7 +109,7 @@ public class UnitMovement : MonoBehaviour
     // This is triggered by the animation event.
     public void OnAttackAnimation(float angle)
     {
-        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+        if(GameStateManager.instance.CheckState("COMBAT"))
         {
             unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
             UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
@@ -124,8 +117,10 @@ public class UnitMovement : MonoBehaviour
 
         // Updating health and calling the OnDamage method.
         var targetUnit = target.GetComponent<Unit>();
-        targetUnit.health -= unit.damage;
-        targetUnit.OnDamage();
+
+        // DAMAGE AMOUNT
+        int damageAmount = unit.damage;
+        targetUnit.OnDamage(unit, damageAmount);
 
         CameraManager.instance.CameraShake(angle, 0.8f);
     }
@@ -147,8 +142,7 @@ public class UnitMovement : MonoBehaviour
                 if(CheckEngagement())
                 {
                     // Combat has been engaged, setting states, clearing tiles.
-                    GameStateManager.instance.previousGameState = GameStateManager.instance.gameState;
-                    GameStateManager.instance.gameState = GameStateManager.GameStates.COMBAT;
+                    GameStateManager.instance.ChangeState("COMBAT");
 
                     foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
                         anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
@@ -172,7 +166,7 @@ public class UnitMovement : MonoBehaviour
     private bool CheckEngagement()
     {
         // If the GameObject of this unit has Player tag and if it isn't combat, check for exisiting aggro tiles to initiate combat.
-        if(tr.tag == "Player" && GameStateManager.instance.gameState != GameStateManager.GameStates.COMBAT)
+        if(tr.tag == "Player" && !GameStateManager.instance.CheckState("COMBAT"))
         {
             Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
             foreach(GameObject enemy in CombatManager.instance.enemyList)

@@ -12,8 +12,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject queueElement = default;
     [SerializeField] private GameObject deathPanel = default;
     [SerializeField] private GameObject healthImage = default;
-    [Space]
     [SerializeField] private float queuePanelWidth = default;
+    [Space]
+    public GameObject tooltip;
 
     private Transform canvasTransform;
     private Transform queuePanel;
@@ -29,7 +30,7 @@ public class UIManager : MonoBehaviour
     {
         instance = this;
         canvasTransform = GameObject.Find("Canvas").transform;
-        queuePanel = canvasTransform.GetChild(0);
+        queuePanel = canvasTransform.Find("CombatQueuePanel");
         queuePanelRTransform = queuePanel.GetComponent<RectTransform>();
         playerPanel = canvasTransform.Find("PlayerUI");
     }
@@ -53,7 +54,7 @@ public class UIManager : MonoBehaviour
         healthText.text = healthUpdate.ToString();
 
         // Some juice on the UI is needed as well.
-        if(GameStateManager.instance.gameState == GameStateManager.GameStates.COMBAT)
+        if(GameStateManager.instance.CheckState("COMBAT"))
             StartCoroutine(UIAnimations.instance.HealthFlash(healthText));
 
         // Player UI health update.

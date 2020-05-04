@@ -12,21 +12,20 @@ public class CameraManager : MonoBehaviour
     {
         instance = this;
         mainCamera = transform.GetComponent<Camera>();
+        mainCamera.orthographicSize = 7;
     }
 
     public void CameraShake(float angle, float magnitude)
     {
         Vector3 startPos = transform.position;
 
-        Debug.Log("Angle: " + angle);
         angle *= Mathf.Deg2Rad;
         float x = startPos.x;
         float y = startPos.y;
         x += magnitude * Mathf.Cos(angle);
         y += magnitude * Mathf.Sin(angle);
-
-        Vector3 endPos = new Vector3(x, y, startPos.z);
         
+        Vector3 endPos = new Vector3(x, y, startPos.z);
         StartCoroutine(Shake(startPos, endPos));
     }
 

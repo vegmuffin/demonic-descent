@@ -35,12 +35,6 @@ public class TilemapGen : MonoBehaviour
         intersectionWidth = RoomManager.instance.intersectionWidth;
     }
 
-    void Update()
-    {
-        if(Input.GetKeyDown(KeyCode.T))
-            TestingPathfinding();
-    }
-
     public void Generate(List<Vector2> map)
     {
         // For pathfinding grid generation.
@@ -51,10 +45,12 @@ public class TilemapGen : MonoBehaviour
 
         foreach(Vector2 coord in map)
         {
+            
             // Since the layout is generated on a 1x1 scale, we have to expand the actual coordinates to fit our room needs.
             Vector2Int expandedCoord = new Vector2Int((int)coord.x*(roomWidth+offsetBetweenRooms)*2, (int)coord.y*(roomHeight+offsetBetweenRooms)*2);
-            Room room = new Room(false, expandedCoord);
-            RoomManager.instance.allRooms.Add(room);
+
+            Room room = GenerateRoom(coord, expandedCoord, map);
+
             if(expandedCoord.x == 0 && expandedCoord.y == 0)
                 RoomManager.instance.currentRoom = room;
 
@@ -63,11 +59,11 @@ public class TilemapGen : MonoBehaviour
             GenerateWalls(expandedCoord);
             GenerateIntersections(expandedCoord);
 
-            // Expanded coordinate bounds
-            int expCoordMinX = expandedCoord.x - roomWidth - 1;
-            int expCoordMinY = expandedCoord.y - roomHeight - 1;
-            int expCoordMaxX = expandedCoord.x + roomWidth + 1;
-            int expCoordMaxY = expandedCoord.x + roomHeight + 1;
+            // Expanded coordinate bounds. Got a lot of null reference errors before when hovering above a non-existent grid, so 50 is just extending the grid margins.
+            int expCoordMinX = expandedCoord.x - roomWidth - 50;
+            int expCoordMinY = expandedCoord.y - roomHeight - 50;
+            int expCoordMaxX = expandedCoord.x + roomWidth + 50;
+            int expCoordMaxY = expandedCoord.x + roomHeight + 50;
 
             // Checking if we have update our min / max values.
             if(expCoordMinX < startX)
@@ -97,7 +93,8 @@ public class TilemapGen : MonoBehaviour
             for(int y = startY; y < endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                groundTilemap.SetTile(tilePos, groundTile);
+                Tile tile = Tiles.instance.GetGroundTile();
+                groundTilemap.SetTile(tilePos, tile);
                 transparentTilemap.SetTile(tilePos, transparentTile);
             }
         }
@@ -115,32 +112,43 @@ public class TilemapGen : MonoBehaviour
             for(int y = startY; y <= endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                Tile whichTile = null;
 
-                // There are edge cases where we have to paint corner tiles instead and mess with tile transform matrixes.
+                // There are edge cases where we have to paint corner tiles instead.
                 if(x == startX || x == endX)
                 {
-                    Vector3 rot = Vector3.zero;
-                    bool corner = IsTileCorner(x, y, startX, endX, startY, endY, ref rot, ref whichTile);
+                    Tile tile = CornerTile(x, y, startX, startY, endX, endY);
 
-                    if(corner)
+                    if(!tile && y != endY)
                     {
-                        wallTilemap.SetTile(tilePos, whichTile);
-                        Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(rot), Vector3.one);
-                        wallTilemap.SetTransformMatrix(tilePos, matrix);
+                        if(x == startX)
+                            tile = Tiles.instance.GetLeftWall();
+                        else if(x == endX)
+                            tile = Tiles.instance.GetRightWall();
                     }
-                    else
+                    else if(y == endY)
                     {
-                        wallTilemap.SetTile(tilePos, straightTileTop);
+                        if(x == startX)
+                            wallTilemap.SetTile(tilePos, Tiles.instance.GetLeftWall());
+                        else if(x == endX)
+                            wallTilemap.SetTile(tilePos, Tiles.instance.GetRightWall());
+
+                        tilePos = new Vector3Int(tilePos.x, tilePos.y+1, 0);
+                        wallTilemap.SetTile(tilePos, Tiles.instance.GetBrickWall());
                     }
+
+                    wallTilemap.SetTile(tilePos, tile);
                 } 
-                else
+                else if(y == startY || y == endY)
                 {
                     Vector3Int tilePosBottom = new Vector3Int(x, startY, 0);
-                    Vector3Int tilePosTop = new Vector3Int(x, endY, 0);
+                    Vector3Int tilePosTop = new Vector3Int(x, endY+1, 0);
 
-                    wallTilemap.SetTile(tilePosBottom, straightTileSides);
-                    wallTilemap.SetTile(tilePosTop, straightTileSides);
+                    wallTilemap.SetTile(tilePosBottom, Tiles.instance.GetBottomWall());
+                    wallTilemap.SetTile(tilePosTop, Tiles.instance.GetTopWall());
+
+                    tilePosTop = new Vector3Int(x, endY, 0);
+                    wallTilemap.SetTile(tilePosTop, Tiles.instance.GetBrickWall());
+
                     break;
                 }
             }
@@ -193,8 +201,9 @@ public class TilemapGen : MonoBehaviour
                 for(int y = coord.y-stepWidth; y <= coord.y+stepWidth; ++y)
                 {
                     // Painting ground tiles
+                    Tile tile = Tiles.instance.GetGroundTile();
                     Vector3Int groundTilePos = new Vector3Int(x, y, 0);
-                    groundTilemap.SetTile(groundTilePos, groundTile);
+                    groundTilemap.SetTile(groundTilePos, tile);
                     transparentTilemap.SetTile(groundTilePos, transparentTile);
 
                     // Eliminating walls that were previously generated. Easier to do than putting more confusing code into wall tilemap generation.
@@ -206,28 +215,29 @@ public class TilemapGen : MonoBehaviour
             // Painting walls on the side of the intersection for better immersion.
             for(int i = coord.x-offsetBetweenRooms; i <= coord.x+offsetBetweenRooms; ++i)
             {
-                wallTilemap.SetTile(new Vector3Int(i, coord.y+stepWidth+1, 0), straightTileSides);
-                wallTilemap.SetTile(new Vector3Int(i, coord.y-stepWidth-1, 0), straightTileSides);
+                Tile topTile = Tiles.instance.GetTopWall();
+                Tile botTile = Tiles.instance.GetBottomWall();
+                wallTilemap.SetTile(new Vector3Int(i, coord.y+stepWidth+1, 0), topTile);
+                wallTilemap.SetTile(new Vector3Int(i, coord.y-stepWidth-1, 0), botTile);
             }
 
             // Edge cases for corners.
+
+            // Bottom left
             Vector3Int tilePos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y-stepWidth-1, 0);
-            wallTilemap.SetTile(tilePos, cornerTileTop);
-            groundTilemap.SetTile(tilePos, groundTile);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomLeftCorner(false));
 
+            // Bottom right
             tilePos = new Vector3Int(coord.x+offsetBetweenRooms, coord.y-stepWidth-1, 0);
-            wallTilemap.SetTile(tilePos, cornerTileTop);
-            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
-            wallTilemap.SetTransformMatrix(tilePos, matrix);
-            groundTilemap.SetTile(tilePos, groundTile);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomRightCorner(false));
 
+            // Top left
             tilePos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y+stepWidth+1, 0);
-            wallTilemap.SetTile(tilePos, cornerTileSides);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopLeftCorner(false));
 
+            // Top right
             tilePos = new Vector3Int(coord.x+offsetBetweenRooms, coord.y+stepWidth+1, 0);
-            wallTilemap.SetTile(tilePos, cornerTileSides);
-            matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
-            wallTilemap.SetTransformMatrix(tilePos, matrix);               
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopRightCorner(false));           
 
         } 
         // Bottom / Top intersection generation. Everything is the same but flipped, since length becomes width and vice versa.
@@ -237,86 +247,92 @@ public class TilemapGen : MonoBehaviour
             {
                 for(int y = coord.y-offsetBetweenRooms; y <= coord.y+offsetBetweenRooms; ++y)
                 {
+                    Tile tile = Tiles.instance.GetGroundTile();
                     Vector3Int groundTilePos = new Vector3Int(x, y, 0);
-                    groundTilemap.SetTile(groundTilePos, groundTile);
+                    groundTilemap.SetTile(groundTilePos, tile);
                     transparentTilemap.SetTile(groundTilePos, transparentTile);
 
-                    if(y == coord.y-offsetBetweenRooms || y == coord.y+offsetBetweenRooms)
+                    // Have to account for brick wall as well.
+                    if(y == coord.y-offsetBetweenRooms || y == coord.y-offsetBetweenRooms+1 || y == coord.y+offsetBetweenRooms)
                         wallTilemap.SetTile(groundTilePos, null);
                 }
             }
 
             for(int i = coord.y-offsetBetweenRooms; i <= coord.y+offsetBetweenRooms; ++i)
             {
-                wallTilemap.SetTile(new Vector3Int(coord.x+stepWidth+1, i, 0), straightTileTop);
-                wallTilemap.SetTile(new Vector3Int(coord.x-stepWidth-1, i, 0), straightTileTop);
+                Tile leftTile = Tiles.instance.GetLeftWall();
+                Tile rightTile = Tiles.instance.GetRightWall();
+                wallTilemap.SetTile(new Vector3Int(coord.x+stepWidth+1, i, 0), rightTile);
+                wallTilemap.SetTile(new Vector3Int(coord.x-stepWidth-1, i, 0), leftTile);
             }
 
             Vector3Int tilePos = new Vector3Int(coord.x-stepWidth-1, coord.y-offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, cornerTileSides);
-            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
-            wallTilemap.SetTransformMatrix(tilePos, matrix);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetBrickWall());
+            tilePos = new Vector3Int(coord.x-stepWidth-1, coord.y-offsetBetweenRooms+1, 0);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopRightCorner(false));
 
             tilePos = new Vector3Int(coord.x+stepWidth+1, coord.y-offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, cornerTileSides);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetBrickWall());
+            tilePos = new Vector3Int(coord.x+stepWidth+1, coord.y-offsetBetweenRooms+1, 0);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopLeftCorner(false));
 
             tilePos = new Vector3Int(coord.x-stepWidth-1, coord.y+offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, cornerTileTop);
-            matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(new Vector3(0, 180f, 0)), Vector3.one);
-            wallTilemap.SetTransformMatrix(tilePos, matrix);
-            groundTilemap.SetTile(tilePos, groundTile);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomRightCorner(false));
 
             tilePos = new Vector3Int(coord.x+stepWidth+1, coord.y+offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, cornerTileTop);
-            groundTilemap.SetTile(tilePos, groundTile);
+            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomLeftCorner(false));
             
         }
 
     }
 
-    // Checks if a tile at a given position should be a corner, returns a boolean as well as returns how it should be rotated.
-    private bool IsTileCorner(int x, int y, int startX, int endX, int startY, int endY, ref Vector3 rot, ref Tile whichTile)
+    // Checks if the tile should be a corner given the coordinates. Returns null if it isn't.
+    private Tile CornerTile(int x, int y, int startX, int startY, int endX, int endY)
     {
         if(y == startY && x == startX)
-        {
-            whichTile = cornerTileSides;
-            return true;
-        }
+            return Tiles.instance.GetBottomLeftCorner(true);
         else if(y == endY && x == startX)
-        {
-            whichTile = cornerTileTop;
-            return true;
-        }
-        else if(y == startY && x == endX)
-        {
-            whichTile = cornerTileSides;
-            rot = new Vector3(0, 180f, 0f);
-            return true;
-        }
+            return Tiles.instance.GetTopLeftCorner(true);
         else if(y == endY && x == endX)
-        {
-            rot = new Vector3(0, 180f, 0f);
-            whichTile = cornerTileTop;
-            return true;
-        }
+            return Tiles.instance.GetTopRightCorner(true);
+        else if(y == startY && x == endX)
+            return Tiles.instance.GetBottomRightCorner(true);
         else
-        {
-            return false;
-        }
+            return null;
     }
 
-    public void TestingPathfinding()
+    private Room GenerateRoom(Vector2 coord, Vector2 expandedCoord, List<Vector2> map)
     {
-        for(int x = -2; x <= 2; ++x)
+        // Checking for intersections.
+        bool bi = false;
+        bool li = false;
+        bool ti = false;
+        bool ri = false;
+        Vector2[] neighbourRooms = new Vector2[4]{new Vector2(coord.x, coord.y-1), new Vector2(coord.x-1, coord.y), new Vector2(coord.x, coord.y+1), new Vector2(coord.x+1, coord.y)};
+        foreach(Vector2 newCoord in map)
         {
-            Vector3Int tilePos = new Vector3Int(x, 2, 0);
-            int accessX = tilePos.x + Mathf.Abs(testX);
-            int accessY = tilePos.y + Mathf.Abs(testY);
-            GridNode node = MovementManager.instance.pathfindingGrid[accessX, accessY];
-            node.isWalkable = false;
-            
-            wallTilemap.SetTile(tilePos, straightTileSides);
+            if(newCoord == neighbourRooms[0] && !bi)
+            {
+                bi = true;
+                continue;
+            } else if(newCoord == neighbourRooms[1] && !li)
+            {
+                li = true;
+                continue;
+            } else if(newCoord == neighbourRooms[2] && !ti)
+            {
+                ti = true;
+                continue;
+            } else if(newCoord == neighbourRooms[3] && !ri)
+            {
+                ri = true;
+                continue;
+            }
         }
+
+        Room room = new Room(false, expandedCoord, bi, li, ti, ri);
+        RoomManager.instance.allRooms.Add(room);
+        return room;
     }
 
 }
