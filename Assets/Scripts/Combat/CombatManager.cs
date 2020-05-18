@@ -14,6 +14,8 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private float timeAfterAttack = default;
     public AnimationCurve cameraShakeSpeedCurve;
     public float flashSpriteRate;
+    [Space]
+    [SerializeField] private GameObject block = default;
 
     [HideInInspector] public List<GameObject> enemyList = new List<GameObject>();
     [HideInInspector] public List<GameObject> combatQueue = new List<GameObject>();
@@ -24,6 +26,8 @@ public class CombatManager : MonoBehaviour
     [HideInInspector] public Tilemap movementTilemap;
     [HideInInspector] public string whoseTurn = string.Empty;
 
+    private List<GameObject> blockages = new List<GameObject>();
+
     private void Awake()
     {
         instance = this;
@@ -33,16 +37,15 @@ public class CombatManager : MonoBehaviour
     // Adding all enemies to the enemyList. Later on the enemyList should contain only the enemies in the current room.
     private void Start()
     {
-        foreach(GameObject enemy in GameObject.FindGameObjectsWithTag("Enemy"))
-        {
-            enemyList.Add(enemy);
-        }
+        Resources.LoadAll("");
+        enemyList.Clear();
     }
 
     // Giving some time before combat to play animations and shit.
     public void InitiateCombat()
     {
         initiatingCombatState = true;
+        BlockOff();
         StartCoroutine(WaitBetweenRounds(true));
 
         // Creating a log entry.
@@ -50,13 +53,48 @@ public class CombatManager : MonoBehaviour
         UILog.instance.NewLogEntry(logEntry);
     }
 
+    // When the battle begins, block of the room to prevent from engaging in other encounters.
+    private void BlockOff()
+    {
+        Room currentRoom = RoomManager.instance.currentRoom;
+        List<Vector3Int> blockCoords = currentRoom.blockingCoords;
+
+        foreach(Vector3Int coord in blockCoords)
+        {
+            GameObject blockage = Instantiate(block, coord, Quaternion.identity);
+            blockages.Add(blockage);
+            MovementManager.instance.UpdateTileWalkability(coord, false);
+        }
+    }
+
+    // Clear the blockages when the battle has ended.
+    private void ClearBlockages()
+    {
+        foreach(GameObject blockage in blockages)
+        {
+            Vector3 trPos = blockage.transform.position;
+            Vector3Int position = new Vector3Int((int)trPos.x, (int)trPos.y, 0);
+            MovementManager.instance.UpdateTileWalkability(position, true);
+            Destroy(blockage);
+        }
+        
+        blockages.Clear();
+    }
+
     // Getting all the units in the game (again, later on only in the current room) and queueing them based on the combat points.
     private void QueueUnits()
     {
         GameObject player = GameObject.Find("Player");
+        var playerUnit = player.GetComponent<Unit>();
+        playerUnit.currentCombatPoints = playerUnit.combatPoints;
+
         combatQueue.Add(player);
-        foreach(GameObject enemy in GameObject.FindGameObjectsWithTag("Enemy"))
+        foreach(GameObject enemy in enemyList)
+        {
             combatQueue.Add(enemy);
+            var enemyUnit = enemy.GetComponent<Unit>();
+            enemyUnit.currentCombatPoints = enemyUnit.combatPoints;
+        }
 
         for(int i = 0; i < combatQueue.Count; ++i)
         {
@@ -148,6 +186,7 @@ public class CombatManager : MonoBehaviour
         GameStateManager.instance.ChangeState("EXPLORING");
         combatQueue.Clear();
         UIManager.instance.EndQueueUI();
+        ClearBlockages();
 
         // Creating a log entry.
         string logEntry = "Battle ends with a victory!";

@@ -11,13 +11,7 @@ public class TilemapGen : MonoBehaviour
     [SerializeField] private Tilemap groundTilemap = default;
     [SerializeField] private Tilemap transparentTilemap = default;
     [Space]
-    [SerializeField] private Tile straightTileTop = default;
-    [SerializeField] private Tile straightTileSides = default;
-    [SerializeField] private Tile cornerTileSides = default;
-    [SerializeField] private Tile cornerTileTop = default;
-    [SerializeField] private Tile groundTile = default;
     [SerializeField] private Tile transparentTile = default;
-    [Space]
     private int roomWidth;
     private int roomHeight;
     private int offsetBetweenRooms;

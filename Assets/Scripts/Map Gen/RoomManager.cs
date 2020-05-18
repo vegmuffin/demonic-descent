@@ -188,6 +188,11 @@ public class RoomManager : MonoBehaviour
         {
             previousRoom = currentRoom;
             currentRoom = roomToBe;
+
+            CombatManager.instance.enemyList.Clear();
+            foreach(GameObject enemy in currentRoom.enemyList)
+                CombatManager.instance.enemyList.Add(enemy);
+
             return new Vector3(roomToBe.position.x, roomToBe.position.y+1, -10f);
         }
         return Vector3.zero;

@@ -34,20 +34,16 @@ public class PresetManager : MonoBehaviour
         instance = this;
     }
 
+    // Getting preset from a pool.
     public GameObject InstantiatePreset(bool lIntersection, bool tIntersection, bool rIntersection, bool bIntersection, Vector2 pos)
     {
-        if(lIntersection && !tIntersection && !rIntersection && !bIntersection)
-        {
-            GameObject go = GetPreset(lIntersection, tIntersection, rIntersection, bIntersection);
-            GameObject newInstance = Instantiate(go, pos, Quaternion.identity);
+        GameObject go = GetPreset(lIntersection, tIntersection, rIntersection, bIntersection);
+        GameObject newInstance = Instantiate(go, pos, Quaternion.identity);
 
-            return newInstance;
-        }
-
-        return null;
-        
+        return newInstance;
     }
 
+    // Based on the intersection count, this returns a room gameobject.
     private GameObject GetPreset(bool lIntersection, bool tIntersection, bool rIntersection, bool bIntersection)
     {
         if(GetBottomPreset(lIntersection, tIntersection, rIntersection, bIntersection))

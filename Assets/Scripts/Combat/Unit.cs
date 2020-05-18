@@ -7,6 +7,7 @@ public class Unit : MonoBehaviour
 {
     public Sprite combatQueueImage;
     public bool isEnemy;
+    [HideInInspector] public int maxHealth;
     public int health;
     public int combatPoints;
     public int damage;
@@ -21,6 +22,7 @@ public class Unit : MonoBehaviour
     [HideInInspector] public int hoveringCombatPoints;
 
     [HideInInspector] public bool isDying = false;
+    [HideInInspector] public bool isAttacking = false;
     private Animator thisAnimator;
     private string lookDir = "Front";
 
@@ -40,6 +42,7 @@ public class Unit : MonoBehaviour
 
         defaultShader = Shader.Find("Sprites/Default");
         flashShader = Shader.Find("GUI/Text Shader");
+        maxHealth = health;
     }
 
     private void Start()
@@ -48,18 +51,9 @@ public class Unit : MonoBehaviour
         {
             movementTilemap = transform.parent.GetChild(1).GetChild(0).GetComponent<Tilemap>();
             aggroColor = CombatManager.instance.aggroColor;
-        }
-        
-    }
 
-    // Start is called before the first frame update
-    private void Update()
-    {
-        if(isEnemy)
-            if(Input.GetKeyDown(KeyCode.A))
-            {
-                AggroGrid();
-            }
+            AggroGrid();
+        }
     }
 
     // Painting the aggro range grid. If a player steps on the grid, combat will be initiated.
@@ -125,7 +119,14 @@ public class Unit : MonoBehaviour
 
             if(gameObject.name == "Player")
             {
-                Debug.Log("Game over!");
+                logEntry = "<color=#FFFFFF>GAME OVER!</color>";
+                UILog.instance.NewLogEntry(logEntry);
+            }
+            else
+            {
+                // Execute looting!
+                var looting = transform.GetComponent<LootTable>();
+                looting.DropLoot();
             }
         }
         else
@@ -151,7 +152,7 @@ public class Unit : MonoBehaviour
                 if(GameStateManager.instance.CheckState("COMBAT"))
                 {
                     int index = CombatManager.instance.GetObjectIndex(gameObject);
-                    UIManager.instance.HealthChange(index, health, isPlayer);
+                    UIManager.instance.HealthChange(index, health, isPlayer, false);
                 }
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }

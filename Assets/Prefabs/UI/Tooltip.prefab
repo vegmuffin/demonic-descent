@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5311228719151541916}
   - component: {fileID: 3595479204607706123}
   - component: {fileID: 1195567552878381914}
+  - component: {fileID: 8197648331462154012}
   m_Layer: 5
   m_Name: Tooltip
   m_TagString: Untagged
@@ -75,6 +76,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &8197648331462154012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 283431876960666332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24b4d1b02d7594fddb3f69859eed4e8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &617556731413009047
 GameObject:
   m_ObjectHideFlags: 0

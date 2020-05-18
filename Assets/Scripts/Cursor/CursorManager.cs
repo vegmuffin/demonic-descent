@@ -8,6 +8,8 @@ public class CursorManager : MonoBehaviour
 {
     public static CursorManager instance;
 
+    [HideInInspector] public bool inUse = false;
+
     [SerializeField] private Sprite defaultCursor = default;
     private Vector2 defaultPivot;
     [SerializeField] private Sprite attackCursor = default;
@@ -109,6 +111,7 @@ public class CursorManager : MonoBehaviour
             realCursor.sprite = defaultCursor;
             cursorRect.pivot = defaultPivot;
             currentAttackDir = "none";
+            cursorRect.eulerAngles = Vector3.zero;
 
             combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         } else if(whichCursor == "ATTACK")
@@ -170,6 +173,16 @@ public class CursorManager : MonoBehaviour
         }
     }
 
+    public void DisableHoveringPoints()
+    {
+        combatPointsIndicator.gameObject.SetActive(false);
+    }
+
+    public void EnableHoveringPoints()
+    {
+        combatPointsIndicator.gameObject.SetActive(true);
+    }
+
     public string GetMouseEnemyQuadrant(Bounds enemyBounds, Vector2 mousePos)
     {
         float xMin = enemyBounds.min.x;
@@ -203,6 +216,7 @@ public class CursorManager : MonoBehaviour
         return "failure";
     }
 
+    // I have no idea what the fuck is going on here, but it works. I didn't study much math to understand.
     private bool IsPointInTriangle(Vector2 p, Vector2 p0, Vector2 p1, Vector2 p2)
     {
         var s = p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y;

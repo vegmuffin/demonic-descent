@@ -18,6 +18,7 @@ public class AttackItem : MonoBehaviour
     private Vector3 primarylocalPosition;
     private Quaternion primaryRotation;
     private bool shouldCheckCollision = false;
+    private Unit thisUnit;
 
     private void Awake()
     {
@@ -27,6 +28,7 @@ public class AttackItem : MonoBehaviour
         childTrail = childItem.GetComponent<TrailRenderer>();
         childTrail.emitting = false;
         childSprite = childItem.GetComponent<SpriteRenderer>();
+        thisUnit = transform.GetComponent<Unit>();
     }
 
     private void FixedUpdate()
@@ -152,6 +154,7 @@ public class AttackItem : MonoBehaviour
             {
                 childTrail.emitting = false;
                 childSprite.color = startColor;
+                thisUnit.isAttacking = false;
 
                 yield break;
             }

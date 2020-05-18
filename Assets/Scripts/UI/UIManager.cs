@@ -9,9 +9,12 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
 
+    [SerializeField] private TMP_Text goldText = default;
     [SerializeField] private GameObject queueElement = default;
     [SerializeField] private GameObject deathPanel = default;
     [SerializeField] private GameObject healthImage = default;
+    [SerializeField] private TMP_Text damageText = default;
+    [SerializeField] private TMP_Text combatPointsText = default;
     [SerializeField] private float queuePanelWidth = default;
     [Space]
     public GameObject tooltip;
@@ -24,6 +27,8 @@ public class UIManager : MonoBehaviour
     private Transform healthLayout;
     private Transform healthImages;
 
+    private float healthElementWidth;
+
     [HideInInspector] public TMP_Text updatingCombatPoints;
 
     private void Awake()
@@ -33,6 +38,9 @@ public class UIManager : MonoBehaviour
         queuePanel = canvasTransform.Find("CombatQueuePanel");
         queuePanelRTransform = queuePanel.GetComponent<RectTransform>();
         playerPanel = canvasTransform.Find("PlayerUI");
+
+        RectTransform healthRect = healthImage.GetComponent<RectTransform>();
+        healthElementWidth = healthRect.rect.width - healthRect.rect.height - 3;
     }
 
     public void InitiateQueueUI(List<GameObject> combatQueue)
@@ -47,20 +55,22 @@ public class UIManager : MonoBehaviour
         StartCoroutine(UIAnimations.instance.HideQueue(queuePanelRTransform));
     }
 
-    public void HealthChange(int queueIndex, int healthUpdate, bool isPlayer)
+    public void HealthChange(int queueIndex, int healthUpdate, bool isPlayer, bool heal)
     {
-        Transform element = panelElements[queueIndex].transform;
-        TMP_Text healthText = element.Find("HLayout2").Find("HLayout1").Find("UnitHealth").GetComponent<TMP_Text>();
-        healthText.text = healthUpdate.ToString();
-
-        // Some juice on the UI is needed as well.
         if(GameStateManager.instance.CheckState("COMBAT"))
-            StartCoroutine(UIAnimations.instance.HealthFlash(healthText));
-
-        // Player UI health update.
-        if(isPlayer)
         {
-            int childCount = healthImages.childCount;
+            Transform element = panelElements[queueIndex].transform;
+            TMP_Text healthText = element.Find("HLayout2").Find("HLayout1").Find("UnitHealth").GetComponent<TMP_Text>();
+            healthText.text = healthUpdate.ToString();
+
+            // Some juice on the UI is needed as well.
+            StartCoroutine(UIAnimations.instance.HealthFlash(healthText));
+        }
+        
+        // Player UI health update.
+        int childCount = healthImages.childCount;
+        if(isPlayer && !heal)
+        {
             int lastIndex = 0;
             for(int i = 0; i < childCount; ++i)
             {
@@ -74,7 +84,22 @@ public class UIManager : MonoBehaviour
                 var uiHealth = healthImages.GetChild(i-1).GetComponent<UIHealth>();
                 StartCoroutine(uiHealth.Deplete());
             }
-
+        }
+        else if(isPlayer && heal)
+        {
+            int firstIndex = 0;
+            for(int i = 0; i < childCount; ++i)
+            {
+                var uiHealth = healthImages.GetChild(i).GetComponent<UIHealth>();
+                firstIndex = i;
+                if(uiHealth.isEmpty)
+                    break;
+            }
+            for(int i = firstIndex; i < healthUpdate; ++i)
+            {
+                var uiHealth = healthImages.GetChild(i).GetComponent<UIHealth>();
+                StartCoroutine(uiHealth.Heal());
+            }
         }
     }
 
@@ -168,12 +193,84 @@ public class UIManager : MonoBehaviour
             GameObject go = Instantiate(healthImage, Vector2.zero, Quaternion.identity, healthImages.transform);
             RectTransform goRect = go.GetComponent<RectTransform>();
 
-            Vector2 newPos = new Vector2(healthLayoutRTransform.anchoredPosition.x + (i * (goRect.rect.width-goRect.rect.height-3)) + healthTextRTransform.rect.width + 30, healthLayoutRTransform.anchoredPosition.y + healthLayoutRTransform.rect.height / 2);
+            Vector2 newPos = new Vector2(healthLayoutRTransform.anchoredPosition.x + (i * healthElementWidth) + healthTextRTransform.rect.width + 30, healthLayoutRTransform.anchoredPosition.y + healthLayoutRTransform.rect.height / 2);
             goRect.anchoredPosition = newPos;
         }
 
         cpLayout.Find("CPText").GetComponent<TMP_Text>().text = combatPoints.ToString();
         dmgLayout.Find("DmgText").GetComponent<TMP_Text>().text = damage.ToString();
+    }
+
+    // Looks simple, isn't.
+    public void IncreasePlayerHealth(int amount)
+    {
+        healthLayout = playerPanel.Find("HealthLayout");
+        healthImages = healthLayout.Find("HealthImages");
+
+        RectTransform healthLayoutRTransform = healthLayout.GetComponent<RectTransform>();
+        RectTransform healthTextRTransform = healthLayout.Find("HealthText").GetComponent<RectTransform>();
+
+        // Find the first empty health image on the UI. If there is none, set the index to the last image.
+        int healthIndex = 0;
+        for(int i = 0; i < healthImages.childCount; ++i)
+        {
+            var healthComponent = healthImages.GetChild(i).GetComponent<UIHealth>();
+            if(healthComponent.isEmpty)
+            {
+                healthIndex = i;
+                break;
+            }
+
+            if(i == healthImages.childCount - 1)
+                healthIndex = healthImages.childCount;
+        }
+
+        // Move empty images if there are any to make room.
+        for(int i = healthIndex; i < healthImages.childCount; ++i)
+        {
+            Transform healthChild = healthImages.GetChild(i);
+            RectTransform healthRect = healthChild.GetComponent<RectTransform>();
+
+            Vector2 newPos = new Vector2(healthRect.anchoredPosition.x + healthElementWidth, healthRect.anchoredPosition.y);
+            healthRect.anchoredPosition = newPos;
+        }
+
+        // Create a new health image and insert it into the empty space.
+        int offsetIndex = healthIndex - 1;
+        int counter = 1;
+        for(int i = healthIndex; i < healthIndex + amount; ++i)
+        {
+            RectTransform offsetRect = healthImages.GetChild(offsetIndex).GetComponent<RectTransform>();
+
+            GameObject healthGo = Instantiate(healthImage, Vector2.zero, Quaternion.identity, healthImages);
+            RectTransform healthGoRect = healthGo.GetComponent<RectTransform>();
+            healthGo.transform.SetSiblingIndex(i);
+
+            Vector2 newHealthPos = new Vector2(offsetRect.anchoredPosition.x + (healthElementWidth*counter), offsetRect.anchoredPosition.y);
+            healthGoRect.anchoredPosition = newHealthPos;
+
+            StartCoroutine(healthGo.GetComponent<UIHealth>().Increase());
+            ++counter;
+        }
+    }
+
+    public void UpdateGoldText(int gold)
+    {
+        string toUpdate = "GOLD: " + gold.ToString();
+        goldText.text = toUpdate;
+        StartCoroutine(UIAnimations.instance.GoldFlash(goldText));
+    }
+
+    public void IncreaseDamageText(int amount)
+    {
+        damageText.text = amount.ToString();
+        StartCoroutine(UIAnimations.instance.StatIncreaseFlash(damageText));
+    }
+
+    public void IncreaseCombatPointsText(int amount)
+    {
+        combatPointsText.text = amount.ToString();
+        StartCoroutine(UIAnimations.instance.StatIncreaseFlash(combatPointsText));
     }
 
     private TMP_Text GetTextFromElement(int index)

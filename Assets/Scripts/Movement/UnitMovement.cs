@@ -79,6 +79,7 @@ public class UnitMovement : MonoBehaviour
                 // ------------------ HAS TO BE CHANGED WHEN THERE ARE ENEMY ANIMATIONS IN PLACE
                 var item = transform.GetComponent<AttackItem>();
                 item.target = target;
+                unit.isAttacking = true;
                 item.BasicAttack(lastDirection, target.transform.position);
                     
             }
