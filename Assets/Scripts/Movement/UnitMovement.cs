@@ -42,7 +42,7 @@ public class UnitMovement : MonoBehaviour
             if(GameStateManager.instance.CheckState("COMBAT"))
             {
                 unit.currentCombatPoints -= 1;
-                UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
+                UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, gameObject);
             }
 
             // Get next grid node.
@@ -113,7 +113,7 @@ public class UnitMovement : MonoBehaviour
         if(GameStateManager.instance.CheckState("COMBAT"))
         {
             unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
-            UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, CombatManager.instance.GetObjectIndex(gameObject));
+            UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, gameObject);
         }
 
         // Updating health and calling the OnDamage method.

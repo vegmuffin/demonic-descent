@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Immutable_Tile
+  m_Name: CathedralHoleTopLeftRight
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: 6292021768129070264, guid: bde175806759e438ba8bafb4722320a3,
+  m_Sprite: {fileID: -1458778966234198227, guid: 68851d6f152794aeaaad76b76f0e2812,
     type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
@@ -33,5 +33,5 @@ MonoBehaviour:
     e32: 0
     e33: 1
   m_InstancedGameObject: {fileID: 0}
-  m_Flags: 0
+  m_Flags: 1
   m_ColliderType: 1

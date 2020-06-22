@@ -33,6 +33,10 @@ public class GameStateManager : MonoBehaviour
 
         currentStateImage = GameObject.Find("GameStateIndicator").GetComponent<Image>();
         previousStateImage = currentStateImage.transform.Find("Previous").GetComponent<Image>();
+
+        // This alleviates 'SOME' performance issues
+        Application.targetFrameRate = -1;
+        QualitySettings.vSyncCount = 0;
     }
 
     public void ChangeState(string state)

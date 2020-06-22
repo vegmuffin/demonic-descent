@@ -12,7 +12,7 @@ public class UIActionPanel : MonoBehaviour
     private Button skipButton;
     private Button waitButton;
     private Button consoleButton;
-    private RectTransform consoleButtonRect;
+    private RectTransform consoleArrowRect;
     private RectTransform logBaseRect;
     private RectTransform thisRect;
 
@@ -24,7 +24,7 @@ public class UIActionPanel : MonoBehaviour
         skipButton = transform.Find("SkipButtonBase").GetChild(0).GetComponent<Button>();
         waitButton = transform.Find("WaitButtonBase").GetChild(0).GetComponent<Button>();
         consoleButton = transform.Find("ConsoleArrowBase").GetChild(0).GetComponent<Button>();
-        consoleButtonRect = consoleButton.GetComponent<RectTransform>();
+        consoleArrowRect = consoleButton.transform.GetChild(0).GetComponent<RectTransform>();
         logBaseRect = transform.Find("LogBase").GetComponent<RectTransform>();
         thisRect = transform.GetComponent<RectTransform>();
     }
@@ -37,12 +37,20 @@ public class UIActionPanel : MonoBehaviour
 
     public void SkipOnClick()
     {
+        UIManager.instance.DeselectButton();
+
+        if(!GameStateManager.instance.CheckState("COMBAT"))
+            return;
+        
         CombatManager.instance.movementTilemap.ClearAllTiles();
         CombatManager.instance.NextTurn();
     }
 
     public void WaitOnClick()
     {
+        if(!GameStateManager.instance.CheckState("COMBAT"))
+            return;
+
         UILog.instance.NewLogEntry("Non existent functionality! :(");
     }
 
@@ -56,12 +64,12 @@ public class UIActionPanel : MonoBehaviour
         if(consoleState)
         {
             endY = thisRect.anchoredPosition.y + logBaseRect.rect.height;
-            consoleButtonRect.rotation = new Quaternion(0, 0, 180f, 0);
+            consoleArrowRect.rotation = new Quaternion(0, 0, 180f, 0);
         }
         else
         {
             endY = thisRect.anchoredPosition.y - logBaseRect.rect.height;
-            consoleButtonRect.rotation = new Quaternion(0, 0, 0, 0);
+            consoleArrowRect.rotation = new Quaternion(0, 0, 0, 0);
         }
 
         Vector2 startPos = thisRect.anchoredPosition;

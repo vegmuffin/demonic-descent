@@ -29,6 +29,9 @@ public class RoomManager : MonoBehaviour
     private Transform cameraTransform;
     private Vector2 dir = Vector2.zero;
 
+    private float checkTimer = 0f;
+    private float checkInterval = 0.3f;
+
     private void Awake()
     {
         instance = this;
@@ -40,7 +43,17 @@ public class RoomManager : MonoBehaviour
 
     private void Update()
     {
-        CheckCamera();
+        CheckTimer();
+    }
+
+    private void CheckTimer()
+    {
+        checkTimer += Time.deltaTime;
+        if(checkTimer >= checkInterval)
+        {
+            checkTimer = 0f;
+            CheckCamera();
+        }
     }
 
     private void CheckCamera()

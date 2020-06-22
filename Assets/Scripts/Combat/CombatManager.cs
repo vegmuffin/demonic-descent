@@ -25,6 +25,7 @@ public class CombatManager : MonoBehaviour
     private int currentIndex;
     [HideInInspector] public Tilemap movementTilemap;
     [HideInInspector] public string whoseTurn = string.Empty;
+    [HideInInspector] public int currentRound = 0;
 
     private List<GameObject> blockages = new List<GameObject>();
 
@@ -44,6 +45,9 @@ public class CombatManager : MonoBehaviour
     // Giving some time before combat to play animations and shit.
     public void InitiateCombat()
     {
+        // Clearing previous combat queue
+        UIManager.instance.ClearCombatQueue();
+
         initiatingCombatState = true;
         BlockOff();
         StartCoroutine(WaitBetweenRounds(true));
@@ -153,12 +157,12 @@ public class CombatManager : MonoBehaviour
         {
             currentIndex = 0;
             whoseTurn = combatQueue[currentIndex].name;
-            StartCoroutine(WaitBetweenRounds());
+            UIManager.instance.NextRound();
         } 
         else
         {
             whoseTurn = combatQueue[currentIndex].name;
-            StartCoroutine(WaitBetweenTurns());
+            UIManager.instance.HideElement();
         }
         
     }
@@ -185,56 +189,15 @@ public class CombatManager : MonoBehaviour
     {
         GameStateManager.instance.ChangeState("EXPLORING");
         combatQueue.Clear();
+        RoomManager.instance.currentRoom.enemyList.Clear();
         UIManager.instance.EndQueueUI();
         ClearBlockages();
 
         // Creating a log entry.
         string logEntry = "Battle ends with a victory!";
         UILog.instance.NewLogEntry(logEntry);
-    }
 
-    private IEnumerator WaitBetweenTurns()
-    {
-        float timer = 0f;
-        while(timer < timeBetweenTurns)
-        {
-            timer += Time.deltaTime;
-            if(timer >= timeBetweenTurns)
-            {
-                ExecuteTurns();
-                yield break;
-            }
-            yield return new WaitForSecondsRealtime(Time.deltaTime);
-        }
-
-        yield break;
-    }
-
-    private IEnumerator WaitBetweenRounds()
-    {
-        float timer = 0f;
-        while(timer < timeBetweenRounds)
-        {
-            timer += Time.deltaTime;
-            if(timer >= timeBetweenRounds)
-            {
-                UIManager.instance.RefreshCombatPoints();
-
-                foreach(GameObject go in combatQueue)
-                {
-                    Unit goUnit = go.GetComponent<Unit>();
-                    goUnit.currentCombatPoints = goUnit.combatPoints;
-                }
-
-                if(!GameStateManager.instance.CheckState("COMBAT"))
-                    yield break;
-
-                ExecuteTurns();
-                yield break;
-            }
-            yield return new WaitForSecondsRealtime(Time.deltaTime);
-        }
-        yield break;
+        currentRound = 0;
     }
 
     // Overloading for the first time the combat starts since we have to set up additional things.
@@ -254,6 +217,7 @@ public class CombatManager : MonoBehaviour
                 currentIndex = 0;
                 whoseTurn = combatQueue[currentIndex].name;
                 CursorManager.instance.combatPointsIndicator.gameObject.SetActive(true);
+                ++currentRound;
                 ExecuteTurns();
                 yield break;
             }

@@ -17,6 +17,13 @@ public class CursorManager : MonoBehaviour
     [SerializeField] private Sprite moveCursor = default;
     private Vector2 movePivot;
     [SerializeField] private Sprite castCursor = default;
+    private Vector2 castPivot;
+    [SerializeField] private Sprite cannotCursor = default;
+    private Vector2 cannotPivot;
+    [SerializeField] private Sprite pickupCursor = default;
+    private Vector2 pickupPivot;
+    [SerializeField] private Sprite shootCursor = default;
+    private Vector2 shootPivot;
 
     private Camera mainCamera;
     private Image realCursor;
@@ -35,7 +42,10 @@ public class CursorManager : MonoBehaviour
         DEFAULT,
         ATTACK,
         MOVE,
-        CAST
+        CAST,
+        CANNOT,
+        PICKUP,
+        SHOOT
     }
 
     public CursorStates currentState;
@@ -54,9 +64,13 @@ public class CursorManager : MonoBehaviour
         combatPointsIndicatorRect = combatPointsIndicator.GetComponent<RectTransform>();
         baseAnchor = combatPointsIndicatorRect.anchoredPosition;
 
-        defaultPivot = new Vector2(0f, 1f);
-        attackPivot = new Vector2(0.95f, 0.5f);
-        movePivot = new Vector2(0f, 1f);
+        defaultPivot = new Vector2(0.05f, 0.95f);
+        attackPivot = new Vector2(0.9f, 0.5f);
+        movePivot = new Vector2(0.05f, 0.95f);
+        castPivot = new Vector2(0.25f, 0.75f);
+        cannotPivot = new Vector2(0.05f, 0.95f);
+        pickupPivot = new Vector2(0.5f, 0.75f);
+        shootPivot = Vector2.zero;
     }
 
     private void Start()
@@ -80,6 +94,12 @@ public class CursorManager : MonoBehaviour
         else if(state == "CAST" && currentState != CursorStates.CAST)
             return false;
         else if(state == "MOVE" && currentState != CursorStates.MOVE)
+            return false;
+        else if(state == "CANNOT" && currentState != CursorStates.CANNOT)
+            return false;
+        else if(state == "PICKUP" && currentState != CursorStates.PICKUP)
+            return false;
+        else if(state == "SHOOT" && currentState != CursorStates.SHOOT)
             return false;
 
         // Current state is the one we are checking for if we have reached this far.
@@ -126,6 +146,19 @@ public class CursorManager : MonoBehaviour
         } else if(whichCursor == "CAST")
         {
             realCursor.sprite = castCursor;
+            cursorRect.pivot = castPivot;
+        } else if(whichCursor == "CANNOT")
+        {
+            realCursor.sprite = cannotCursor;
+            cursorRect.pivot = cannotPivot;
+        } else if(whichCursor == "PICKUP")
+        {
+            realCursor.sprite = pickupCursor;
+            cursorRect.pivot = pickupPivot;
+        } else if(whichCursor == "SHOOT")
+        {
+            realCursor.sprite = shootCursor;
+            cursorRect.pivot = shootPivot;
         }
     }
 

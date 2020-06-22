@@ -33,12 +33,24 @@ public class UIAnimations : MonoBehaviour
     [SerializeField] private Color textFlashColor = default;
     [SerializeField] private float textFlashSpeed = default;
 
-    [Header("Element hide animation")]
-    [SerializeField] private AnimationCurve elementHideSpeedCurve = default;
+    [Header("Element DYING animation")]
+    [Header("Curves for all stages of the combat queue")]
+    [SerializeField] private AnimationCurve elementDyingSpeedCurve = default;
 
-    [Header("Element rearrangement animation")]
-    [SerializeField] private AnimationCurve rearrangementSpeedCurve = default;
-    [HideInInspector] public List<RearrangementElement> rearrangementElements = new List<RearrangementElement>();
+    [Header("Element REARRANGEMENT animation")]
+    [SerializeField] private AnimationCurve elementRearrangementSpeedCurve = default;
+
+    [Header("NEW element animation")]
+    [SerializeField] private AnimationCurve elementNewSpeedCurve = default;
+
+    [Header("Element HIDE animation")]
+    [SerializeField] private AnimationCurve elementHideSpeedCruve = default;
+
+    [Header("Element SHIFT animation")]
+    [SerializeField] private AnimationCurve elementShiftSpeedCurve = default;
+
+    [Header("Element LAST animation")]
+    [SerializeField] private AnimationCurve elementLastSpeedCurve = default;
 
     [Header("Gold text flash animation")]
     [SerializeField] private Color goldFlashColor = default;
@@ -55,6 +67,8 @@ public class UIAnimations : MonoBehaviour
     public Color endTooltipColor;
     public Color startTooltipColor;
     public float tooltipFadeInRate;
+
+    [HideInInspector] public List<RearrangementElement> secondElementList = new List<RearrangementElement>();
 
     private void Awake()
     {
@@ -123,52 +137,65 @@ public class UIAnimations : MonoBehaviour
         yield break;
     }
 
-    public IEnumerator HideElement(RectTransform elementRect)
+    // This coroutine is started whenever we want to move elements around in the combat queue.
+    // IMPORTANT - this does not support async deaths so this may be a problem in the future. But not now :p
+
+    // Stages go like this: DYING -> REARRANGING -> NEW -> HIDE -> SHIFT -> LAST
+    public IEnumerator RearrangeElements(string whichStage, List<RearrangementElement> elementList)
     {
+        AnimationCurve curve = null;
+        if(whichStage == "DYING")
+            curve = elementDyingSpeedCurve;
+        else if(whichStage == "REARRANGING")
+            curve = elementRearrangementSpeedCurve;
+        else if(whichStage == "NEW")
+            curve = elementNewSpeedCurve;
+        else if(whichStage == "HIDE")
+            curve = elementHideSpeedCruve;
+        else if(whichStage == "SHIFT")
+            curve = elementShiftSpeedCurve;
+        else if(whichStage == "LAST")
+            curve = elementLastSpeedCurve;
+        else
+            yield break;
+        
         float timer = 0f;
 
-        float x = elementRect.anchoredPosition.x;
-        float y = elementRect.anchoredPosition.y;
-        Vector2 startPos = new Vector2(x, y);
-        Vector2 endPos = new Vector2(x + queuePanelXOffset*4, y);
-
-        while(timer <= 1f)
-        {
-            timer += Time.deltaTime * elementHideSpeedCurve.Evaluate(timer);
-            elementRect.anchoredPosition = Vector2.Lerp(startPos, endPos, timer);
-
-            if(timer >= 1f)
-            {
-                elementRect.anchoredPosition = endPos;
-                StartCoroutine(RearrangeElements());
-                yield break;
-            }
-            else
-            {
-                yield return new WaitForSecondsRealtime(Time.deltaTime);
-            }
-        }
-
-        yield break;
-    }
-
-    private IEnumerator RearrangeElements()
-    {
-        float timer = 0f;
-        if(rearrangementElements.Count != 0)
+        if(elementList.Count != 0)
         {
             while(timer <= 1f)
             {
-                for(int i = 0; i < rearrangementElements.Count; ++i)
-                    rearrangementElements[i].rect.anchoredPosition = Vector2.Lerp(rearrangementElements[i].startPos, rearrangementElements[i].endPos, timer);
+                for(int i = 0; i < elementList.Count; ++i)
+                    elementList[i].rect.anchoredPosition = Vector2.Lerp(elementList[i].startPos, elementList[i].endPos, timer);
                 
-                timer += Time.deltaTime * rearrangementSpeedCurve.Evaluate(timer);
+                timer += Time.deltaTime * curve.Evaluate(timer);
                 if(timer >= 1f)
                 {
-                    for(int i = 0; i < rearrangementElements.Count; ++i)
-                        rearrangementElements[i].rect.anchoredPosition = rearrangementElements[i].endPos;
+                    for(int i = 0; i < elementList.Count; ++i)
+                        elementList[i].rect.anchoredPosition = elementList[i].endPos;
 
-                    rearrangementElements.Clear();
+                    // Calling this coroutine again with other elements.
+                    if(whichStage == "DYING")
+                    {
+                        foreach(RearrangementElement ele in elementList)
+                            Destroy(ele.rect.gameObject);
+
+                        StartCoroutine(RearrangeElements("REARRANGING", secondElementList));
+                    }
+                    else if(whichStage == "REARRANGING")
+                    {
+                        CreateNewElements("REARRANGING");
+                    }
+                    else if(whichStage == "HIDE")
+                    {
+                        foreach(RearrangementElement ele in elementList)
+                            Destroy(ele.rect.gameObject);
+                        ShiftElements();
+                    }
+                    else if(whichStage == "SHIFT")
+                    {
+                        CreateNewElements("SHIFT");
+                    }
                 }
                 else
                 {
@@ -180,15 +207,60 @@ public class UIAnimations : MonoBehaviour
         // If we are still in combat, execute new turns.
         if(GameStateManager.instance.CheckState("COMBAT"))
         {
-            if(CombatManager.instance.currentUnit.currentCombatPoints <= 0)
-                CombatManager.instance.NextTurn();
-            else
+            if(whichStage == "NEW")
+            {
+                if(CombatManager.instance.currentUnit.currentCombatPoints <= 0)
+                    CombatManager.instance.NextTurn();
+                else
+                    CombatManager.instance.ExecuteTurns();
+            }
+            else if(whichStage == "LAST")
                 CombatManager.instance.ExecuteTurns();
         }
 
+
         yield break;
     }
+
+    private void CreateNewElements(string whichStage)
+    {
+        List<List<GameObject>> rounds = UIManager.instance.rounds;
+
+        int lastRoundElements = rounds[rounds.Count-1].Count - 1;
+        UIManager.instance.RefillQueue(lastRoundElements, whichStage);
+
+        secondElementList.Clear();
+    }
     
+    private void ShiftElements()
+    {
+        List<RearrangementElement> newElementList = new List<RearrangementElement>();
+        List<List<GameObject>> rounds = UIManager.instance.rounds;
+        int currentRound = CombatManager.instance.currentRound-1;
+        bool isNewRound = UIManager.instance.newRound;
+        for(int i = currentRound; i < rounds.Count; ++i)
+        {
+            for(int j = 0; j < rounds[i].Count; ++j)
+            {
+                if(i == currentRound && j == 0)
+                {
+                    if(isNewRound)
+                        UIManager.instance.newRound = false;
+                    else
+                        continue;
+                }
+                
+                RectTransform elementRect = rounds[i][j].GetComponent<RectTransform>();
+                Vector2 startPos = elementRect.anchoredPosition;
+                Vector2 endPos = new Vector2(startPos.x, startPos.y + UIManager.instance.GetShiftAmount(isNewRound));
+                RearrangementElement shiftingElement = new RearrangementElement(startPos, endPos, elementRect);
+                newElementList.Add(shiftingElement);
+            }
+        }
+
+        StartCoroutine(RearrangeElements("SHIFT", newElementList));
+
+    }
 
     public IEnumerator HealthFlash(TMP_Text healthText)
     {

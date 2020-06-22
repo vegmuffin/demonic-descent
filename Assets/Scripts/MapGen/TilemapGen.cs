@@ -17,9 +17,6 @@ public class TilemapGen : MonoBehaviour
     private int offsetBetweenRooms;
     private int intersectionWidth;
 
-    private int testX;
-    private int testY;
-
     private void Awake()
     {
         instance = this;
@@ -54,10 +51,10 @@ public class TilemapGen : MonoBehaviour
             GenerateIntersections(expandedCoord);
 
             // Expanded coordinate bounds. Got a lot of null reference errors before when hovering above a non-existent grid, so 50 is just extending the grid margins.
-            int expCoordMinX = expandedCoord.x - roomWidth - 50;
-            int expCoordMinY = expandedCoord.y - roomHeight - 50;
-            int expCoordMaxX = expandedCoord.x + roomWidth + 50;
-            int expCoordMaxY = expandedCoord.x + roomHeight + 50;
+            int expCoordMinX = expandedCoord.x;
+            int expCoordMinY = expandedCoord.y;
+            int expCoordMaxX = expandedCoord.x;
+            int expCoordMaxY = expandedCoord.y;
 
             // Checking if we have update our min / max values.
             if(expCoordMinX < startX)
@@ -69,9 +66,11 @@ public class TilemapGen : MonoBehaviour
             if(expCoordMaxY > endY)
                 endY = expCoordMaxY;
         }
-        testX = startX;
-        testY = startY;
 
+        startX = startX - (roomWidth + 50);
+        startY = startY - (roomHeight + 50);
+        endX = endX + (roomWidth + 50);
+        endY = endY + (roomHeight + 50);
         MovementManager.instance.PopulateGrid(startX, startY, endX, endY);
     }
 

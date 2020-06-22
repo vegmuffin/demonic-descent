@@ -60,7 +60,16 @@ public class SkeletonAI : MonoBehaviour
             {
                 isAttacking = true;
                 Vector2 overlapCirclePos = new Vector2(endCoord.x+0.5f, endCoord.y+0.5f);
-                target = Physics2D.OverlapCircle(overlapCirclePos, 0.33f).gameObject;
+
+                Collider2D[] cols = Physics2D.OverlapCircleAll(overlapCirclePos, 0.33f);
+                foreach(Collider2D col in cols)
+                {
+                    if(col.gameObject.tag == "Player")
+                    {
+                        target = col.gameObject;
+                        break;
+                    }
+                }
             }
             skeletonUnitMovement.remainingMoves = 0;
             StartCoroutine(skeletonUnitMovement.MoveAlongPath(startCoord, path, path.Length, isAttacking, target));

@@ -113,6 +113,8 @@ public class MovementManager : MonoBehaviour
 
                 CursorManager.instance.SetCursor("DEFAULT");
 
+                UIActionPanel.instance.EnableDisableButtons(false);
+
                 StartCoroutine(playerMovement.MoveAlongPath(currentPosition, path, path.Length, isAttacking, target));
             }
             
@@ -153,7 +155,7 @@ public class MovementManager : MonoBehaviour
 
                 if(pathfindingTiles.Count == 0 && !cursorAttackState)
                 {
-                    CursorManager.instance.SetCursor("DEFAULT");
+                    CursorManager.instance.SetCursor("CANNOT");
                     CursorManager.instance.DisableHoveringPoints();
                 }
 
@@ -296,6 +298,8 @@ public class MovementManager : MonoBehaviour
                     }
                 }
             }
+
+            ShopManager.instance.InvalidateShopTile();
         }
 
         // Checking for all enemies and units
@@ -410,6 +414,7 @@ public class MovementManager : MonoBehaviour
     public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, 
                                       Tilemap whichTilemap, bool gridGeneration, bool isAttacking)
     {
+
         // Empty path.
         List<GridNode> path = new List<GridNode>();
 
@@ -508,7 +513,6 @@ public class MovementManager : MonoBehaviour
                 }
             }
         }
-        
 
         // If we have reached here, that means we haven't found a path to the end node, which simply means we are returning an empty list.
         return path;
@@ -599,4 +603,17 @@ public class MovementManager : MonoBehaviour
 
          return Vector3Int.zero;
     }
+
+    /* void OnDrawGizmos()
+    {
+        Vector3 v1 = new Vector3(gridStartX, gridStartY, 10);
+        Vector3 v2 = new Vector3(gridStartX, gridStartY + distanceY, 10);
+        Vector3 v3 = new Vector3(gridStartX + distanceX, gridStartY);
+        Vector3 v4 = new Vector3(gridStartX + distanceX, gridStartY + distanceY);
+
+        Gizmos.DrawLine(v1, v2); // BottomLeft to TopLeft
+        Gizmos.DrawLine(v1, v3); // BottomLeft to BottomRight
+        Gizmos.DrawLine(v4, v3); // TopRight to BottomRight
+        Gizmos.DrawLine(v4, v2); // TopRight to TopLeft
+    } */
 }

@@ -104,7 +104,7 @@ public class Unit : MonoBehaviour
 
             // Calling UI to dispose of the dead unit.
             int index = CombatManager.instance.GetObjectIndex(gameObject);
-            UIManager.instance.DeathChange(index);
+            UIManager.instance.AlternativeDeathChange(gameObject);
 
             // If the cursor is on the dying unit, update it. NEEDS TO BE UPDATED SINCE NOW THE CURSOR IS AN OVERLAY IMAGE.
             var box = transform.GetComponent<BoxCollider2D>();
@@ -152,7 +152,7 @@ public class Unit : MonoBehaviour
                 if(GameStateManager.instance.CheckState("COMBAT"))
                 {
                     int index = CombatManager.instance.GetObjectIndex(gameObject);
-                    UIManager.instance.HealthChange(index, health, isPlayer, false);
+                    UIManager.instance.HealthChange(gameObject, health, isPlayer, false);
                 }
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }

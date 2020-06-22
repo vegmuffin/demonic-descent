@@ -12,7 +12,12 @@ public class UIComponent : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     {
         CursorManager.instance.inUse = true;
         inUse = true;
-        CursorManager.instance.SetCursor("DEFAULT");
+
+        if(!gameObject.GetComponent<LootDescriptor>())
+            CursorManager.instance.SetCursor("DEFAULT");
+        else
+            CursorManager.instance.SetCursor("PICKUP");
+
         MovementManager.instance.ResetTilePos();
         
         if(GameStateManager.instance.CheckState("COMBAT"))

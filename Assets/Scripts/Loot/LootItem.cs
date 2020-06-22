@@ -58,12 +58,8 @@ public class LootItem : MonoBehaviour
                 playerUnit.health = playerUnit.maxHealth;
             else
                 playerUnit.health += customValue;
-
-            int queueIndex = 0;         
-            if(GameStateManager.instance.CheckState("COMBAT"))
-                queueIndex = CombatManager.instance.GetObjectIndex(player);
             
-            UIManager.instance.HealthChange(queueIndex, playerUnit.health, true, true);
+            UIManager.instance.HealthChange(player, playerUnit.health, true, true);
         }
 
         if(gameObject.name.Contains("Gold"))
