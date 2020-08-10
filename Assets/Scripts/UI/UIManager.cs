@@ -10,65 +10,120 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
 
-    [SerializeField] private TMP_Text goldText = default;
     [SerializeField] private GameObject primaryQueueElement = default;
     [SerializeField] private GameObject secondaryQueueElement = default;
     [SerializeField] private GameObject roundText = default;
     [SerializeField] private GameObject deathPanel = default;
-    [SerializeField] private GameObject healthImage = default;
-    [SerializeField] private TMP_Text damageText = default;
-    [SerializeField] private TMP_Text combatPointsText = default;
-    public GameObject tooltip;
+    [SerializeField] private GameObject goldFlash = default;
+    [SerializeField] private Color cpDisabled = default;
+    [SerializeField] private Color cpEnabled = default;
     [Space]
-    [SerializeField] private float queuePanelWidth = default;
     [SerializeField] private float spaceAfterRound = default;
+    [Space]
+    public AnimationCurve statFadeCurve;
+    public Color statAdditionColor;
+
+    private Transform playerUI;
     public int maxCombatQueueElements = default;
-    [SerializeField] private float queueElementHeight = default;
-    private Transform canvasTransform;
     private Transform queuePanel;
     private RectTransform queuePanelRTransform;
-    private Transform playerPanel;
-    private Transform healthLayout;
-    private Transform healthImages;
+    private RectTransform combatVisRect;
+    private Button skipButton;
+    private Button waitButton;
+    private Vector2 queueElementSize;
+    private float combatVisualisationBaseHeight;
+    [Space]
+    [HideInInspector] public Image healthFill;
+    [HideInInspector] public Image healthFillFlash;
+    private float healthFillWidth;
+    private Transform healthTextMain;
+    [HideInInspector] public Image cpFill;
+    [HideInInspector] public Image cpFillFlash;
+    private Transform cpTextMain;
+    private float cpFillWidth;
+    private Unit playerUnit;
+    private Transform goldTextObject;
+    private List<TMP_Text> goldTextBunch = new List<TMP_Text>();
 
-    [HideInInspector] public List<List<GameObject>> rounds = new List<List<GameObject>>();
+    // Stats
+    private Dictionary<string, TMP_Text> statDict = new Dictionary<string, TMP_Text>();
+
     private int lastRoundVisible = 0;
-    public bool newRound = false;
-
-    private float healthElementWidth;
-    private EventSystem eventSystem;
-
+    [HideInInspector] public List<List<GameObject>> rounds = new List<List<GameObject>>();
+    [HideInInspector] public bool newRound = false;
     [HideInInspector] public TMP_Text updatingCombatPoints;
+    private EventSystem eventSystem;
 
     private void Awake()
     {
         instance = this;
-        canvasTransform = GameObject.Find("Canvas").transform;
-        queuePanel = canvasTransform.Find("CombatQueuePanel");
+        Screen.SetResolution(1920, 1080, true, 60);
+
+        Transform canvasTransform = GameObject.Find("Canvas").transform;
+        Transform combatVisualisation = canvasTransform.Find("CombatVisualisation");
+        combatVisRect = combatVisualisation.GetComponent<RectTransform>();
+        combatVisualisationBaseHeight = combatVisRect.sizeDelta.y;
+        queuePanel = combatVisualisation.Find("CombatQueuePanel");
         queuePanelRTransform = queuePanel.GetComponent<RectTransform>();
-        playerPanel = canvasTransform.Find("PlayerUI");
-
-        RectTransform healthRect = healthImage.GetComponent<RectTransform>();
-        healthElementWidth = healthRect.rect.width - healthRect.rect.height - 3;
-
+        Transform playerPanel = canvasTransform.Find("PlayerUI");
+        skipButton = combatVisualisation.Find("CombatActionsPanel").Find("SkipButton").GetComponent<Button>();
+        waitButton = combatVisualisation.Find("CombatActionsPanel").Find("WaitButton").GetComponent<Button>();
         eventSystem = GameObject.Find("EventSystem").GetComponent<EventSystem>();
+        queueElementSize = primaryQueueElement.GetComponent<RectTransform>().sizeDelta;
+
+        playerUnit = GameObject.Find("Player").GetComponent<Unit>();
+        playerUI = canvasTransform.Find("PlayerUI");
+        Transform hContainer = playerUI.Find("HealthBar");
+        Transform cpContainer = playerUI.Find("CombatPointsBar");
+        healthFill = playerUI.Find("HealthFill").GetComponent<Image>();
+        cpFill = playerUI.Find("CombatPointsFill").GetComponent<Image>();
+        healthFillFlash = playerUI.Find("HealthFlash").GetComponent<Image>();
+        cpFillFlash = playerUI.Find("CombatPointsFlash").GetComponent<Image>();
+        healthFillWidth = playerUI.Find("HealthFill").GetComponent<RectTransform>().sizeDelta.x;
+        cpFillWidth = playerUI.Find("CombatPointsFill").GetComponent<RectTransform>().sizeDelta.x;
+
+        healthTextMain = hContainer.Find("HealthTextMain");
+        cpTextMain = cpContainer.Find("CombatPointsTextMain");
+        string healthString = playerUnit.health.ToString() + "/" + playerUnit.maxHealth.ToString();
+        string cpString = playerUnit.currentCombatPoints.ToString() + "/" + playerUnit.combatPoints.ToString();
+        UpdateText(healthTextMain, healthString);
+        UpdateText(cpTextMain, cpString);
+
+        goldTextObject = playerUI.Find("Gold").Find("GoldTextMain");
+        goldTextBunch.Add(goldTextObject.GetComponent<TMP_Text>());
+        for(int i = 0; i < goldTextObject.childCount; ++i)
+            goldTextBunch.Add(goldTextObject.GetChild(i).GetComponent<TMP_Text>());
+
+        TMP_Text damageText = playerUI.Find("Damage").Find("DamageText").GetComponent<TMP_Text>();
+        damageText.text = playerUnit.damage.ToString();
+        statDict.Add("Damage", damageText);
+    }
+
+    private void UpdateText(Transform textObject, string text)
+    {
+        textObject.GetComponent<TMP_Text>().text = text;
+        for(int i = 0; i < textObject.childCount; ++i)
+            textObject.GetChild(i).GetComponent<TMP_Text>().text = text;
     }
 
     public void InitiateQueueUI(List<GameObject> combatQueue)
     {
-        queuePanelRTransform.anchoredPosition = new Vector2(100f, 0f);
-        queuePanelRTransform.sizeDelta = new Vector2(100f, 100f);
-        AlternativePopulate(combatQueue);
+        queuePanelRTransform.sizeDelta = queueElementSize;
+        cpFill.color = cpEnabled;
+        Populate(combatQueue);
 
-        StartCoroutine(UIAnimations.instance.ShowQueue(queuePanelRTransform));
+        StartCoroutine(UIAnimations.instance.ShowQueue(combatVisRect));
     }
 
     public void EndQueueUI()
     {
-        StartCoroutine(UIAnimations.instance.HideQueue(queuePanelRTransform));
+        cpFill.color = cpDisabled;
+        playerUnit.currentCombatPoints = playerUnit.combatPoints;
+        cpFill.fillAmount = 1f;
+        StartCoroutine(UIAnimations.instance.HideQueue(combatVisRect));
     }
 
-    public void HealthChange(GameObject combatUnit, int healthUpdate, bool isPlayer, bool heal)
+    public void HealthChange(GameObject combatUnit, int previousHealth, int currentHealth, bool isPlayer, bool heal)
     {
         if(GameStateManager.instance.CheckState("COMBAT"))
         {
@@ -78,7 +133,8 @@ public class UIManager : MonoBehaviour
             // It always can be that the current round UI doesn't have the damaged unit. We have to check for that.
             if(healthText)
             {
-                healthText.text = healthUpdate.ToString();
+                healthText.text = previousHealth.ToString();
+                healthText.transform.GetChild(0).GetComponent<TMP_Text>().text = previousHealth.ToString();
 
                 // Some juice on the UI is needed as well.
                 StartCoroutine(UIAnimations.instance.HealthFlash(healthText));
@@ -86,42 +142,22 @@ public class UIManager : MonoBehaviour
         }
         
         // Player UI health update.
-        int childCount = healthImages.childCount;
-        if(isPlayer && !heal)
+        if(combatUnit.CompareTag("Player"))
         {
-            int lastIndex = 0;
-            for(int i = 0; i < childCount; ++i)
-            {
-                var uiHealth = healthImages.GetChild(i).GetComponent<UIHealth>();
-                if(uiHealth.isEmpty)
-                    break;
-                lastIndex = i;
-            }
-            for(int i = lastIndex+1; i > healthUpdate; --i)
-            {
-                var uiHealth = healthImages.GetChild(i-1).GetComponent<UIHealth>();
-                StartCoroutine(uiHealth.Deplete());
-            }
+            float currentFill = healthFill.fillAmount;
+            float currentFillRaw = currentFill * healthFillWidth;
+            float neededFill = (currentFill*currentHealth)/previousHealth;
+            healthFill.fillAmount = neededFill;
+
+            string healthString = currentHealth.ToString() + "/" + playerUnit.maxHealth.ToString();
+            UpdateText(healthTextMain, healthString);
+
+            UIAnimations.instance.StartHealthDepleteTimer();
         }
-        else if(isPlayer && heal)
-        {
-            int firstIndex = 0;
-            for(int i = 0; i < childCount; ++i)
-            {
-                var uiHealth = healthImages.GetChild(i).GetComponent<UIHealth>();
-                firstIndex = i;
-                if(uiHealth.isEmpty)
-                    break;
-            }
-            for(int i = firstIndex; i < healthUpdate; ++i)
-            {
-                var uiHealth = healthImages.GetChild(i).GetComponent<UIHealth>();
-                StartCoroutine(uiHealth.Heal());
-            }
-        }
+        
     }
 
-    public void AlternativeDeathChange(GameObject dyingUnit)
+    public void DeathChange(GameObject dyingUnit)
     {
         List<RearrangementElement> elementList = new List<RearrangementElement>();
         List<RectTransform> deathElements = new List<RectTransform>();
@@ -169,7 +205,7 @@ public class UIManager : MonoBehaviour
                     var elementScript = element.GetComponent<QueueElement>();
 
                     if(element.anchoredPosition.y < deathElement.anchoredPosition.y)
-                        elementScript.amountToMove += queueElementHeight;
+                        elementScript.amountToMove += queueElementSize.y;
                 }
             }
         }
@@ -198,12 +234,12 @@ public class UIManager : MonoBehaviour
     }
 
     // Trying to expand the combat queue to show multiple rounds...
-    private void AlternativePopulate(List<GameObject> combatQueue)
+    private void Populate(List<GameObject> combatQueue)
     {
         // Calculate the total panel height based on how many elements we are drawing.
         float space = spaceAfterRound*2;
-        float queuePanelHeight = queueElementHeight * maxCombatQueueElements + space;
-        queuePanelRTransform.sizeDelta = new Vector2(queuePanelWidth, queuePanelHeight);
+        float queuePanelHeight = queueElementSize.y * maxCombatQueueElements + space;
+        queuePanelRTransform.sizeDelta = new Vector2(queueElementSize.x, queuePanelHeight);
 
         int counter = 0;
         int whichRound = 1;
@@ -223,7 +259,7 @@ public class UIManager : MonoBehaviour
 
                 // Since the position are not driven by a layout group, we have to do it manually.
                 RectTransform elementRTransform = elementInstance.GetComponent<RectTransform>();
-                Vector2 newPos = new Vector2(0f, i*queueElementHeight*-1 - spaceAfterRound);
+                Vector2 newPos = new Vector2(0f, i*queueElementSize.y*-1 - spaceAfterRound);
                 elementRTransform.anchoredPosition = newPos;
             }
             // Secondary elements
@@ -233,7 +269,7 @@ public class UIManager : MonoBehaviour
                 {
                     rounds.Add(new List<GameObject>());
                     whichRound = 2;
-                    Vector2 anchoredPos = new Vector2(0f, i*queueElementHeight*-1 - spaceAfterRound);
+                    Vector2 anchoredPos = new Vector2(0f, i*queueElementSize.y*-1 - spaceAfterRound);
                     CreateRoundTextInstance(whichRound, anchoredPos);
                 }
 
@@ -241,7 +277,7 @@ public class UIManager : MonoBehaviour
                 GameObject elementInstance = CreateSecondaryCombatQueueElement(combatUnit, whichRound);
 
                 RectTransform elementRTransform = elementInstance.GetComponent<RectTransform>();
-                Vector2 newPos = new Vector2(0f, i*queueElementHeight*-1 - space);
+                Vector2 newPos = new Vector2(0f, i*queueElementSize.y*-1 - space);
                 elementRTransform.anchoredPosition = newPos;
 
                 ++counter;
@@ -250,19 +286,20 @@ public class UIManager : MonoBehaviour
                     counter = 0;
                     space += spaceAfterRound;
                     queuePanelHeight += spaceAfterRound;
-                    queuePanelRTransform.sizeDelta = new Vector2(queuePanelWidth, queuePanelHeight);
+                    queuePanelRTransform.sizeDelta = new Vector2(queueElementSize.x, queuePanelHeight);
 
                     ++whichRound;
 
                     if(i != maxCombatQueueElements - 1)
                     {
-                        Vector2 anchoredPos = new Vector2(0f, (i+1)*queueElementHeight*-1 - (space - spaceAfterRound)); // what
+                        Vector2 anchoredPos = new Vector2(0f, (i+1)*queueElementSize.y*-1 - (space - spaceAfterRound)); // what
                         rounds.Add(new List<GameObject>());
                         CreateRoundTextInstance(whichRound, anchoredPos);
                     }
                 }
             }
         }
+        combatVisRect.sizeDelta = new Vector2(combatVisRect.sizeDelta.x, combatVisualisationBaseHeight + queuePanelRTransform.sizeDelta.y);
     }
 
     public void RefillQueue(int lastRoundElements, string whichStage)
@@ -289,7 +326,7 @@ public class UIManager : MonoBehaviour
 
                 // Since the position are not driven by a layout group, we have to do it manually.
                 RectTransform elementRTransform = elementInstance.GetComponent<RectTransform>();
-                Vector2 newPos = new Vector2(200f, i*queueElementHeight*-1 - spaceAfterRound);
+                Vector2 newPos = new Vector2(200f, i*queueElementSize.y*-1 - spaceAfterRound);
                 elementRTransform.anchoredPosition = newPos;
 
                 RearrangementElement newElement = new RearrangementElement(newPos, new Vector2(0f, newPos.y), elementRTransform);
@@ -301,7 +338,7 @@ public class UIManager : MonoBehaviour
                 {
                     counter = 0;
                     rounds.Add(new List<GameObject>());
-                    Vector2 anchoredPos = new Vector2(200f, i*queueElementHeight*-1 - spaceAfterRound*GetTotalRoundTexts());
+                    Vector2 anchoredPos = new Vector2(200f, i*queueElementSize.y*-1 - spaceAfterRound*GetTotalRoundTexts());
                     RectTransform roundTextRect = CreateRoundTextInstance(lastRoundVisible+1, anchoredPos);
                     RearrangementElement roundTextElement = new RearrangementElement(anchoredPos, new Vector2(0f, anchoredPos.y), roundTextRect);
                     elementList.Add(roundTextElement);
@@ -314,7 +351,7 @@ public class UIManager : MonoBehaviour
 
 
                 RectTransform elementRTransform = elementInstance.GetComponent<RectTransform>();
-                Vector2 newPos = new Vector2(200f, i*queueElementHeight*-1 - space);
+                Vector2 newPos = new Vector2(200f, i*queueElementSize.y*-1 - space);
                 elementRTransform.anchoredPosition = newPos;
 
                 RearrangementElement newElement = new RearrangementElement(newPos, new Vector2(0f, newPos.y), elementRTransform);
@@ -323,6 +360,8 @@ public class UIManager : MonoBehaviour
                 ++counter;
             }
         }
+
+        combatVisRect.sizeDelta = new Vector2(combatVisRect.sizeDelta.x, combatVisualisationBaseHeight + queuePanelRTransform.sizeDelta.y);
 
         if(whichStage == "REARRANGING")
             StartCoroutine(UIAnimations.instance.RearrangeElements("NEW", elementList));
@@ -334,7 +373,7 @@ public class UIManager : MonoBehaviour
     {
         Unit unit = combatUnit.GetComponent<Unit>();
 
-        string unitName = unit.acronym;
+        string unitName = unit.name;
         int unitHealth = unit.health;
         int unitCombatPoints = unit.combatPoints;
         Sprite unitImage = unit.combatQueueImage;
@@ -345,15 +384,17 @@ public class UIManager : MonoBehaviour
         elementScript.attachedGameObject = combatUnit;
         elementScript.whichRound = whichRound;
 
-        Image img = elementInstance.transform.Find("HLayout1").Find("UnitImage").GetComponent<Image>();
-        TMP_Text nText = elementInstance.transform.Find("HLayout1").Find("UnitName").GetComponent<TMP_Text>();
-        TMP_Text hText = elementInstance.transform.Find("HLayout2").Find("HLayout1").Find("UnitHealth").GetComponent<TMP_Text>();
-        TMP_Text cText = elementInstance.transform.Find("HLayout2").Find("HLayout2").Find("UnitCP").GetComponent<TMP_Text>();
-
+        Image img = elementInstance.transform.Find("UnitImage").GetComponent<Image>();
         img.sprite = unitImage;
-        nText.text = unitName;
-        hText.text = unitHealth.ToString();
-        cText.text = unitCombatPoints.ToString() + "/" + unitCombatPoints.ToString();
+
+        Transform nameTextObject = elementInstance.transform.Find("UnitNameMain");
+        UpdateText(nameTextObject, unitName.ToUpper());
+
+        Transform healthTextObject = elementInstance.transform.Find("UnitHealthMain");
+        UpdateText(healthTextObject, unitHealth.ToString());
+
+        Transform cpTextObject = elementInstance.transform.Find("UnitCPMain");
+        UpdateText(cpTextObject, unitCombatPoints.ToString());
 
         return elementInstance;
     }
@@ -362,7 +403,7 @@ public class UIManager : MonoBehaviour
     {
         Unit unit = combatUnit.GetComponent<Unit>();
 
-        string unitName = unit.acronym;
+        string unitName = unit.name;
         Sprite unitImage = unit.combatQueueImage;
 
         GameObject elementInstance = Instantiate(secondaryQueueElement, Vector2.zero, Quaternion.identity, queuePanel);
@@ -372,10 +413,10 @@ public class UIManager : MonoBehaviour
         elementScript.whichRound = whichRound;
 
         Image img = elementInstance.transform.Find("UnitImage").GetComponent<Image>();
-        TMP_Text nText = elementInstance.transform.Find("UnitName").GetComponent<TMP_Text>();
-
         img.sprite = unitImage;
-        nText.text = unitName;
+
+        Transform nameTextObject = elementInstance.transform.Find("UnitNameMain");
+        UpdateText(nameTextObject, unitName.ToUpper());
 
         return elementInstance;
     }
@@ -385,7 +426,9 @@ public class UIManager : MonoBehaviour
         ++lastRoundVisible;
         GameObject roundTextInstance = Instantiate(roundText, Vector2.zero, Quaternion.identity, queuePanel);
         roundTextInstance.GetComponent<QueueElement>().whichRound = round;
-        roundTextInstance.GetComponent<TMP_Text>().text = "Round " + round.ToString();
+
+        string roundTextString = "ROUND " + round.ToString();
+        UpdateText(roundTextInstance.transform, roundTextString);
 
         RectTransform instanceRect = roundTextInstance.GetComponent<RectTransform>();
         instanceRect.anchoredPosition = anchoredPos;
@@ -401,7 +444,7 @@ public class UIManager : MonoBehaviour
         for(int j = 0; j < queuePanel.childCount; ++j)
         {
             GameObject child = queuePanel.GetChild(j).gameObject;
-            if(child.name.Contains("RoundText"))
+            if(child.name.Contains("RoundTextMain"))
                 roundTexts++;
         }
         return roundTexts;
@@ -423,6 +466,8 @@ public class UIManager : MonoBehaviour
 
     public void NextRound()
     {
+        ResetCombatPointsBar();
+
         int currentRound = CombatManager.instance.currentRound;
         List<RearrangementElement> elementList = new List<RearrangementElement>();
         for(int i = 0; i < rounds[currentRound-1].Count; ++i)
@@ -462,119 +507,52 @@ public class UIManager : MonoBehaviour
 
             Image newImg = GetImageFromElement(newElementScript.attachedGameObject);
             newImg.sprite = unit.combatQueueImage;
-            TMP_Text newName = GetNameTextFromElement(newElementScript.attachedGameObject);
-            newName.text = unit.acronym;
-            TMP_Text newHealth = GetHealthTextFromElement(newElementScript.attachedGameObject);
-            newHealth.text = unit.health.ToString();
-            TMP_Text newCP = GetCPTextFromElement(newElementScript.attachedGameObject);
-            newCP.text = unit.combatPoints.ToString() + "/" + unit.combatPoints.ToString();
+
+            Transform newNameMain = GetNameTextFromElement(newElementScript.attachedGameObject).transform;
+            UpdateText(newNameMain, unit.name.ToUpper());
+
+            Transform newHealthMain = GetHealthTextFromElement(newElementScript.attachedGameObject).transform;
+            UpdateText(newHealthMain, unit.health.ToString());
+
+            Transform newCPMain = GetCPTextFromElement(newElementScript.attachedGameObject).transform;
+            UpdateText(newCPMain, unit.combatPoints.ToString());
 
             Destroy(oldElementRect.gameObject);
         }
     }
 
-    public void UpdateCombatPoints(int currentCombatPoints, int maxCombatPoints, GameObject combatUnit)
+    public void UpdateCombatPoints(int previousCombatPoints, int currentCombatPoints, int maxCombatPoints, GameObject combatUnit)
     {
         if(updatingCombatPoints == null)
             updatingCombatPoints = GetCPTextFromElement(combatUnit);
-        
-        updatingCombatPoints.text = currentCombatPoints + "/" + maxCombatPoints;
-    }
 
-    public void InitiatePlayerUI(int health, int combatPoints, int damage)
-    {
-        healthLayout = playerPanel.Find("HealthLayout");
-        healthImages = healthLayout.Find("HealthImages");
+        // Updating the combat queue element combat points.
+        UpdateText(updatingCombatPoints.transform, currentCombatPoints.ToString());
 
-        Transform cpLayout = playerPanel.Find("CPLayout");
-        Transform dmgLayout = playerPanel.Find("DmgLayout");
-
-        RectTransform healthLayoutRTransform = healthLayout.GetComponent<RectTransform>();
-        RectTransform healthTextRTransform = healthLayout.Find("HealthText").GetComponent<RectTransform>();
-        
-        for(int i = 0; i < health; ++i)
+        if(combatUnit.CompareTag("Player"))
         {
-            GameObject go = Instantiate(healthImage, Vector2.zero, Quaternion.identity, healthImages.transform);
-            RectTransform goRect = go.GetComponent<RectTransform>();
+            float currentFill = cpFill.fillAmount;
+            float neededFill = (float)currentCombatPoints/(float)maxCombatPoints;
+            cpFill.fillAmount = neededFill;
 
-            Vector2 newPos = new Vector2(healthLayoutRTransform.anchoredPosition.x + (i * healthElementWidth) + healthTextRTransform.rect.width + 30, healthLayoutRTransform.anchoredPosition.y + healthLayoutRTransform.rect.height / 2);
-            goRect.anchoredPosition = newPos;
+            string cpString = currentCombatPoints + "/" + maxCombatPoints;
+            UpdateText(cpTextMain, cpString);
+            UIAnimations.instance.StartCPDepleteTimer();
         }
-
-        cpLayout.Find("CPText").GetComponent<TMP_Text>().text = combatPoints.ToString();
-        dmgLayout.Find("DmgText").GetComponent<TMP_Text>().text = damage.ToString();
     }
 
-    // Looks simple, isn't.
     public void IncreasePlayerHealth(int amount)
     {
-        healthLayout = playerPanel.Find("HealthLayout");
-        healthImages = healthLayout.Find("HealthImages");
-
-        RectTransform healthLayoutRTransform = healthLayout.GetComponent<RectTransform>();
-        RectTransform healthTextRTransform = healthLayout.Find("HealthText").GetComponent<RectTransform>();
-
-        // Find the first empty health image on the UI. If there is none, set the index to the last image.
-        int healthIndex = 0;
-        for(int i = 0; i < healthImages.childCount; ++i)
-        {
-            var healthComponent = healthImages.GetChild(i).GetComponent<UIHealth>();
-            if(healthComponent.isEmpty)
-            {
-                healthIndex = i;
-                break;
-            }
-
-            if(i == healthImages.childCount - 1)
-                healthIndex = healthImages.childCount;
-        }
-
-        // Move empty images if there are any to make room.
-        for(int i = healthIndex; i < healthImages.childCount; ++i)
-        {
-            Transform healthChild = healthImages.GetChild(i);
-            RectTransform healthRect = healthChild.GetComponent<RectTransform>();
-
-            Vector2 newPos = new Vector2(healthRect.anchoredPosition.x + healthElementWidth, healthRect.anchoredPosition.y);
-            healthRect.anchoredPosition = newPos;
-        }
-
-        // Create a new health image and insert it into the empty space.
-        int offsetIndex = healthIndex - 1;
-        int counter = 1;
-        for(int i = healthIndex; i < healthIndex + amount; ++i)
-        {
-            RectTransform offsetRect = healthImages.GetChild(offsetIndex).GetComponent<RectTransform>();
-
-            GameObject healthGo = Instantiate(healthImage, Vector2.zero, Quaternion.identity, healthImages);
-            RectTransform healthGoRect = healthGo.GetComponent<RectTransform>();
-            healthGo.transform.SetSiblingIndex(i);
-
-            Vector2 newHealthPos = new Vector2(offsetRect.anchoredPosition.x + (healthElementWidth*counter), offsetRect.anchoredPosition.y);
-            healthGoRect.anchoredPosition = newHealthPos;
-
-            StartCoroutine(healthGo.GetComponent<UIHealth>().Increase());
-            ++counter;
-        }
+        
     }
 
-    public void UpdateGoldText(int gold)
+    public void UpdateGoldText(int gold, string goldChange)
     {
-        string toUpdate = "GOLD: " + gold.ToString();
-        goldText.text = toUpdate;
-        StartCoroutine(UIAnimations.instance.GoldFlash(goldText));
-    }
-
-    public void IncreaseDamageText(int amount)
-    {
-        damageText.text = amount.ToString();
-        StartCoroutine(UIAnimations.instance.StatIncreaseFlash(damageText));
-    }
-
-    public void IncreaseCombatPointsText(int amount)
-    {
-        combatPointsText.text = amount.ToString();
-        StartCoroutine(UIAnimations.instance.StatIncreaseFlash(combatPointsText));
+        string goldText = gold.ToString();
+        UpdateText(goldTextObject, goldText);
+        Transform goldFlashInstance = Instantiate(goldFlash, playerUI).transform;
+        UpdateText(goldFlashInstance, goldChange);
+        UIAnimations.instance.GoldFlash(goldTextObject, goldTextBunch);
     }
 
     private TMP_Text GetCPTextFromElement(GameObject combatUnit)
@@ -584,7 +562,7 @@ public class UIManager : MonoBehaviour
         {
             var elementScript = rounds[currentRound-1][i].GetComponent<QueueElement>();
             if(elementScript.attachedGameObject == combatUnit)
-                return rounds[currentRound-1][i].transform.Find("HLayout2").Find("HLayout2").Find("UnitCP").GetComponent<TMP_Text>();
+                return rounds[currentRound-1][i].transform.Find("UnitCPMain").GetComponent<TMP_Text>();
         }
         return null;
     }
@@ -596,7 +574,7 @@ public class UIManager : MonoBehaviour
         {
             var elementScript = rounds[currentRound-1][i].GetComponent<QueueElement>();
             if(elementScript.attachedGameObject == combatUnit)
-                return rounds[currentRound-1][i].transform.Find("HLayout2").Find("HLayout1").Find("UnitHealth").GetComponent<TMP_Text>();
+                return rounds[currentRound-1][i].transform.Find("UnitHealthMain").GetComponent<TMP_Text>();
         }
 
         return null;
@@ -609,7 +587,7 @@ public class UIManager : MonoBehaviour
         {
             var elementScript = rounds[currentRound-1][i].GetComponent<QueueElement>();
             if(elementScript.attachedGameObject == combatUnit)
-                return rounds[currentRound-1][i].transform.Find("HLayout1").Find("UnitName").GetComponent<TMP_Text>();
+                return rounds[currentRound-1][i].transform.Find("UnitNameMain").GetComponent<TMP_Text>();
         }
 
         return null;
@@ -622,7 +600,7 @@ public class UIManager : MonoBehaviour
         {
             var elementScript = rounds[currentRound-1][i].GetComponent<QueueElement>();
             if(elementScript.attachedGameObject == combatUnit)
-                return rounds[currentRound-1][i].transform.Find("HLayout1").Find("UnitImage").GetComponent<Image>();
+                return rounds[currentRound-1][i].transform.Find("UnitImage").GetComponent<Image>();
         }
 
         return null;
@@ -630,11 +608,11 @@ public class UIManager : MonoBehaviour
 
     public void ClearCombatQueue()
     {
-        for(int i = 0; i < rounds.Count; ++i)
-            for(int j = 0; j < rounds.Count; ++j)
-                Destroy(rounds[i][j]);
+        for(int i = 0; i < queuePanel.childCount; ++i)
+        {
+            Destroy(queuePanel.GetChild(i).gameObject);
+        }
         rounds.Clear();
-        
     }
 
     public void DeselectButton()
@@ -642,12 +620,55 @@ public class UIManager : MonoBehaviour
         eventSystem.SetSelectedGameObject(null);
     }
 
+    public void WaitOnClick()
+    {
+        if(!GameStateManager.instance.CheckState("COMBAT"))
+            return;
+
+        UILog.instance.NewLogEntry("Non existent functionality! :(");
+    }
+
+    public void SkipOnClick()
+    {
+        UIManager.instance.DeselectButton();
+
+        if(!GameStateManager.instance.CheckState("COMBAT"))
+            return;
+        
+        CombatManager.instance.movementTilemap.ClearAllTiles();
+        CombatManager.instance.NextTurn();
+    }
+
+    public void EnableDisableButtons(bool enable)
+    {
+        skipButton.interactable = enable;
+        waitButton.interactable = enable;
+    }
+
     // temporary (or not)
     public float GetShiftAmount(bool isNewRound)
     {
         if(isNewRound)
-            return queuePanelWidth + spaceAfterRound;
+            return queueElementSize.x + spaceAfterRound;
         else
-            return queuePanelWidth;
+            return queueElementSize.x;
+    }
+
+    public void ResetCombatPointsBar()
+    {
+        cpFill.fillAmount = 1;
+        cpFillFlash.fillAmount = 1;
+
+        string cpString = playerUnit.combatPoints.ToString() + "/" + playerUnit.combatPoints.ToString();
+        UpdateText(cpTextMain, cpString);
+    }
+
+    public void IncreaseStat(string whichStat, int amount)
+    {
+        playerUnit.damage += amount;
+        statDict[whichStat].text = (amount + playerUnit.damage).ToString();
+        Transform increaseText = statDict[whichStat].transform.Find("StatAddition");
+        increaseText.gameObject.SetActive(true);
+        increaseText.GetComponent<StatIncrease>().Enable(amount);
     }
 }

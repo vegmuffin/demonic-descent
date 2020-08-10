@@ -99,12 +99,11 @@ public class ShopManager : MonoBehaviour
                 UIManager.instance.IncreasePlayerHealth(1);
                 break;
             case "DamageAddition":
-                playerUnit.damage += 1;
-                UIManager.instance.IncreaseDamageText(playerUnit.damage);
+                UIManager.instance.IncreaseStat("Damage", 1);
                 break;
             case "CombatPointsAddition":
                 playerUnit.combatPoints += 1;
-                UIManager.instance.IncreaseCombatPointsText(playerUnit.combatPoints);
+                // UIManager.instance.IncreaseCombatPointsText(playerUnit.combatPoints);
                 break;
             default:
                 break;

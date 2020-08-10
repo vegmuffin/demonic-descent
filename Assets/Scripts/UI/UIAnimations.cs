@@ -34,7 +34,6 @@ public class UIAnimations : MonoBehaviour
     [SerializeField] private float textFlashSpeed = default;
 
     [Header("Element DYING animation")]
-    [Header("Curves for all stages of the combat queue")]
     [SerializeField] private AnimationCurve elementDyingSpeedCurve = default;
 
     [Header("Element REARRANGEMENT animation")]
@@ -50,29 +49,52 @@ public class UIAnimations : MonoBehaviour
     [SerializeField] private AnimationCurve elementShiftSpeedCurve = default;
 
     [Header("Element LAST animation")]
-    [SerializeField] private AnimationCurve elementLastSpeedCurve = default;
+    [SerializeField] private AnimationCurve elementLastSpeedCurve = default;  
 
-    [Header("Gold text flash animation")]
-    [SerializeField] private Color goldFlashColor = default;
-    [SerializeField] private float goldFlashSpeed = default;
-    [SerializeField] private float goldBounceHeight = default;
+    [Header("UI Bar animation")]
+    [SerializeField] private float healthDepleteSpeed = default;
+    [SerializeField] private float healthBufferPeriod = default;
+    [SerializeField] private Color healthDepleteFlashColor = default;
+    [SerializeField] private float cpDepleteSpeed = default;
+    [SerializeField] private float cpBufferPeriod = default;
+    [SerializeField] private Color cpDepleteFlashColor = default;
+    private Image healthDepleteBar;
+    private Image healthBar;
+    private Image cpDepleteBar;
+    private Image cpBar;
+    private float healthDepleteTimer = 0f;
+    [HideInInspector] public bool isHealthDepleteTimerRunning = false;
+    private float healthDepleteColorLerp = 0f;
+    private float cpDepleteTimer = 0f;
+    [HideInInspector] public bool isCPDepleteTimerRunning = false;
+    private float cpDepleteColorLerp = 0f;
 
-    [Header("Stat increase animation")]
-    [SerializeField] private float statIncreaseScale = default;
-    [SerializeField] private Color statFlashColor = default;
-    [SerializeField] private AnimationCurve statFlashSpeedCurve = default;
-
-    [Header("Tooltip animation")]
-    public float tooltipThreshold;
-    public Color endTooltipColor;
-    public Color startTooltipColor;
-    public float tooltipFadeInRate;
+    [Header("Gold flash animation")]
+    public Vector2 goldTextOffset;
+    public float goldTextFadeRate;
+    [SerializeField] private Vector2 goldDistortion = default;
+    [SerializeField] private float goldJump = default;
+    [SerializeField] private float goldJumpRate = default;
+    [SerializeField] private float goldFallRate = default;
+    private float goldFlashTimer = 0f;
+    private int goldFlashPhase = 1;
+    private bool isGoldFlashRunning = false;
 
     [HideInInspector] public List<RearrangementElement> secondElementList = new List<RearrangementElement>();
 
     private void Awake()
     {
         instance = this;
+        healthDepleteBar = UIManager.instance.healthFillFlash;
+        cpDepleteBar = UIManager.instance.cpFillFlash;
+        healthBar = UIManager.instance.healthFill;
+        cpBar = UIManager.instance.cpFill;
+    }
+
+    private void Update()
+    {
+        HealthDepleteTimer();
+        CPDepleteTimer();
     }
 
     public IEnumerator ShowQueue(RectTransform elementRect)
@@ -123,7 +145,9 @@ public class UIAnimations : MonoBehaviour
             {
                 elementRect.anchoredPosition = endPos;
 
-                for(int i = 0; i < elementRect.transform.childCount; ++i)
+                Transform queuePanel = elementRect.transform.Find("CombatQueuePanel");
+
+                for(int i = 0; i < queuePanel.childCount; ++i)
                     Destroy(elementRect.transform.GetChild(i).gameObject, 5f); // Give it time to not fuck up.
                 
                 yield break;
@@ -143,6 +167,9 @@ public class UIAnimations : MonoBehaviour
     // Stages go like this: DYING -> REARRANGING -> NEW -> HIDE -> SHIFT -> LAST
     public IEnumerator RearrangeElements(string whichStage, List<RearrangementElement> elementList)
     {
+        if(!GameStateManager.instance.CheckState("COMBAT"))
+            yield break;
+
         AnimationCurve curve = null;
         if(whichStage == "DYING")
             curve = elementDyingSpeedCurve;
@@ -294,28 +321,72 @@ public class UIAnimations : MonoBehaviour
         yield break;
     }
 
-    public IEnumerator GoldFlash(TMP_Text goldText)
+    public void StartHealthDepleteTimer()
     {
-        float timer = 0f;
-        Color startingColor = goldText.color;
-        goldText.color = goldFlashColor;
-
-        Vector4 defaultMargin = goldText.margin;
-        Vector4 bounceMargin = new Vector4(defaultMargin.x, defaultMargin.y, defaultMargin.z, goldBounceHeight);
-
-        while(timer <= 1f)
+        if(isHealthDepleteTimerRunning)
+            healthDepleteTimer = 0f;
+        else
         {
-            if(timer >= 0.5f)
-                goldText.margin = Vector4.Lerp(bounceMargin, defaultMargin, timer);
-            else
-                goldText.margin = Vector4.Lerp(defaultMargin, bounceMargin, timer);
+            healthDepleteBar.color = healthDepleteFlashColor;
+            isHealthDepleteTimerRunning = true;
+        }
+    }
 
-            timer += Time.deltaTime * goldFlashSpeed;
+    public void StartCPDepleteTimer()
+    {
+        if(isCPDepleteTimerRunning)
+            cpDepleteTimer = 0f;
+        else
+        {
+            cpDepleteBar.color = cpDepleteFlashColor;
+            isCPDepleteTimerRunning = true;
+        }
+    }
 
-            if(timer >= 1f)
+    private void HealthDepleteTimer()
+    {
+        if(isHealthDepleteTimerRunning)
+        {
+            healthDepleteTimer += Time.deltaTime;
+            healthDepleteBar.color = Color.Lerp(healthDepleteFlashColor, Color.white, healthDepleteTimer/healthBufferPeriod);
+            if(healthDepleteTimer >= healthBufferPeriod)
             {
-                goldText.color = startingColor;
-                goldText.margin = defaultMargin;
+                healthDepleteTimer = 0f;
+                isHealthDepleteTimerRunning = false;
+                healthDepleteBar.color = Color.white;
+                StartCoroutine(HealthDeplete());
+            }
+        }
+    }
+
+    private void CPDepleteTimer()
+    {
+        if(isCPDepleteTimerRunning)
+        {
+            cpDepleteTimer += Time.deltaTime;
+            cpDepleteBar.color = Color.Lerp(cpDepleteFlashColor, Color.white, cpDepleteTimer/cpBufferPeriod);
+            if(cpDepleteTimer >= cpBufferPeriod)
+            {
+                cpDepleteTimer = 0f;
+                isCPDepleteTimerRunning = false;
+                cpDepleteBar.color = Color.white;
+                StartCoroutine(CPDeplete());
+            }
+        }
+    }
+
+    private IEnumerator HealthDeplete()
+    {
+        float timer = healthDepleteBar.fillAmount;
+        float endTime = healthBar.fillAmount;
+        
+        while(timer >= endTime)
+        {
+            timer -= Time.deltaTime * healthDepleteSpeed;
+            healthDepleteBar.fillAmount = timer;
+
+            if(timer <= endTime)
+            {
                 yield break;
             }
             else
@@ -327,34 +398,98 @@ public class UIAnimations : MonoBehaviour
         yield break;
     }
 
-    public IEnumerator StatIncreaseFlash(TMP_Text statText)
+    private IEnumerator CPDeplete()
     {
-        float timer = 0f;
+        float timer = cpDepleteBar.fillAmount;
+        float endTime = cpBar.fillAmount;
 
-        RectTransform damageTextRect = statText.GetComponent<RectTransform>();
-        Vector3 endScale = damageTextRect.localScale;
-        damageTextRect.localScale = new Vector3(statIncreaseScale, statIncreaseScale, 1);
-        Vector3 startScale = damageTextRect.localScale;
-
-        Color endColor = statText.color;
-        statText.color = statFlashColor;
-
-        while(timer <= 1f)
+        while(timer >= endTime)
         {
-            statText.color = Color.Lerp(statFlashColor, endColor, timer);
-            damageTextRect.localScale = Vector3.Lerp(startScale, endScale, timer);
+            timer -= Time.deltaTime * cpDepleteSpeed;
+            cpDepleteBar.fillAmount = timer;
 
-            timer += Time.deltaTime * statFlashSpeedCurve.Evaluate(timer);
-
-            if(timer >= 1f)
+            if(timer <= 0f)
             {
-                statText.color = endColor;
-                yield break;
+                yield break;     
             }
             else
             {
                 yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
+        }
+
+        yield break;
+    }
+
+    public void GoldFlash(Transform goldText, List<TMP_Text> texts)
+    {
+        if(!isGoldFlashRunning)
+        {
+            isGoldFlashRunning = true;
+            StartCoroutine(GoldFlashCoroutine(goldText, texts));
+        }
+        else
+        {
+            goldFlashPhase = 1;
+            goldFlashTimer = 0f;
+        }
+    }
+
+    private IEnumerator GoldFlashCoroutine(Transform goldText, List<TMP_Text> texts)
+    {
+        foreach(TMP_Text txt in texts)
+        {
+            txt.color = Color.white;
+            txt.fontSize = 80f;
+        }
+
+        goldFlashTimer = 0f;
+        goldFlashPhase = 1;
+        
+        var rect = goldText.GetComponent<RectTransform>();
+        Vector2 startPos = rect.anchoredPosition;
+        Vector2 endPos = new Vector2(startPos.x, startPos.y + goldJump);
+
+        float rate = goldJumpRate;
+
+        while(goldFlashTimer <= 1f)
+        {
+            goldFlashTimer += Time.deltaTime * rate;
+
+            if(goldFlashPhase == 1)
+            {
+                rect.anchoredPosition = Vector2.Lerp(startPos, endPos, goldFlashTimer);
+                goldText.localScale = Vector2.Lerp(Vector2.one, goldDistortion, goldFlashTimer);
+            }
+            else
+            {
+                rect.anchoredPosition = Vector2.Lerp(endPos, startPos, goldFlashTimer);
+                goldText.localScale = Vector2.Lerp(goldDistortion, Vector2.one, goldFlashTimer);
+            }
+
+            if(goldFlashTimer >= 1f && goldFlashPhase == 1)
+            {
+                foreach(TMP_Text txt in texts)
+                {
+                    if(!txt.name.Contains("White"))
+                        txt.color = Color.black;
+                    txt.fontSize = 50f;
+                }
+                
+                ++goldFlashPhase;
+                goldFlashTimer = 0f;
+                rate = goldFallRate;
+            }
+            else if(goldFlashTimer >= 1f && goldFlashPhase != 1)
+            {   
+                rect.anchoredPosition = startPos;
+                isGoldFlashRunning = false;
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(Time.deltaTime);
+            }
+
         }
 
         yield break;

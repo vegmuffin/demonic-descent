@@ -5,19 +5,28 @@ using UnityEngine.Tilemaps;
 
 public class UnitMovement : MonoBehaviour
 {
-    private Transform tr;
-
     [HideInInspector] public int remainingMoves = default;
     [HideInInspector] public bool isMoving = false;
     [HideInInspector] public GameObject target = null;
 
+    private Transform tr;
     private Unit unit;
     private Vector2 lastDirection = Vector2.zero;
+    private AnimationCurve unitSpeedCurve;
+    private bool rotateBool = false;
+    private float rotateRange = 7f;
+    private Transform unitSprite;
+    private GameObject dustParticle;
+    private float dustDepleteSpeed;
 
     private void Awake()
     {
         tr = transform;
         unit = transform.GetComponent<Unit>();
+        unitSpeedCurve = MovementManager.instance.unitSpeedCurve;
+        unitSprite = transform.Find("UnitSprite");
+        dustParticle = MovementManager.instance.dustParticle;
+        dustDepleteSpeed = MovementManager.instance.dustDepleteSpeed;
     }
 
     // Path is divided into grid nodes, the outer enumerator walks through all of the nodes.
@@ -42,7 +51,7 @@ public class UnitMovement : MonoBehaviour
             if(GameStateManager.instance.CheckState("COMBAT"))
             {
                 unit.currentCombatPoints -= 1;
-                UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, gameObject);
+                UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints-1, unit.currentCombatPoints, unit.combatPoints, gameObject);
             }
 
             // Get next grid node.
@@ -56,7 +65,10 @@ public class UnitMovement : MonoBehaviour
             ++remainingMoves;
 
             // Starting the inner enumerator.
-            yield return StartCoroutine(MoveLerp(tr.position, futurePos));
+            bool lastOne = false;
+            if(remainingMoves == combatPoints)
+                lastOne = true;
+            yield return StartCoroutine(MoveLerp(tr.position, futurePos, lastOne));
         }
 
         /* if(!isAttacking && tr.tag == "Player")
@@ -113,7 +125,7 @@ public class UnitMovement : MonoBehaviour
         if(GameStateManager.instance.CheckState("COMBAT"))
         {
             unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
-            UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints, unit.combatPoints, gameObject);
+            UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints-2, unit.currentCombatPoints, unit.combatPoints, gameObject);
         }
 
         // Updating health and calling the OnDamage method.
@@ -127,17 +139,40 @@ public class UnitMovement : MonoBehaviour
     }
 
     // The inner enumerator is lerping from one grid node to the other to make smooth movement.
-    private IEnumerator MoveLerp(Vector2 startPos, Vector2 endPos)
+    private IEnumerator MoveLerp(Vector2 startPos, Vector2 endPos, bool lastOne)
     {
+        // Spawn dust (TO DO POOLING)
+        Vector2 startDustPos = new Vector2(startPos.x + 0.5f, startPos.y + 0.2f);
+        // Not sure about this shit wtf
+
+        Transform dust = GameObject.Instantiate(dustParticle, startDustPos, Quaternion.identity).transform;
+        StartCoroutine(dust.GetComponent<Dust>().DustMove(lastDirection*-1, dustDepleteSpeed));
+
+        rotateBool = !rotateBool;
+        Vector3 startRot = Vector3.zero;
+        Vector3 endRot;
+        if(lastOne)
+            endRot = Vector3.zero;
+        else
+        {
+            if(rotateBool)
+                endRot = new Vector3(0, 0, rotateRange);
+            else
+                endRot = new Vector3(0, 0, -rotateRange);
+        }
+
         float timer = 0f;
+
         while(timer <= 1f)
         {
             tr.position = Vector2.Lerp(startPos, endPos, timer);
+            unitSprite.eulerAngles = Vector3.Lerp(startRot, endRot, timer);
 
-            timer += Time.deltaTime * MovementManager.instance.unitSpeed;
+            timer += Time.deltaTime * unitSpeedCurve.Evaluate(timer);
             if(timer >= 1f)
             {
                 tr.position = endPos;
+                unitSprite.eulerAngles = Vector3.zero;
 
                 // Checking for combat engagement.
                 if(CheckEngagement())
@@ -153,7 +188,7 @@ public class UnitMovement : MonoBehaviour
                     CombatManager.instance.InitiateCombat();
                 }
 
-                yield break;
+                yield return new WaitForSecondsRealtime(Time.deltaTime);
             }
             else
             {
@@ -169,7 +204,7 @@ public class UnitMovement : MonoBehaviour
         // If the GameObject of this unit has Player tag and if it isn't combat, check for exisiting aggro tiles to initiate combat.
         if(tr.tag == "Player" && !GameStateManager.instance.CheckState("COMBAT"))
         {
-            Vector3Int playerPos = new Vector3Int((int)Mathf.Floor(tr.position.x), (int)Mathf.Floor(tr.position.y), 0);
+            Vector3Int playerPos = new Vector3Int(Mathf.RoundToInt(tr.position.x), Mathf.RoundToInt(tr.position.y), 0);
             foreach(GameObject enemy in CombatManager.instance.enemyList)
             {
                 Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;

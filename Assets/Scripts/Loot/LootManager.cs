@@ -84,6 +84,7 @@ public class LootManager : MonoBehaviour
     public void DepleteGold(int amount)
     {
         goldCollected -= amount;
-        UIManager.instance.UpdateGoldText(goldCollected);
+        string goldChange = "-" + amount;
+        UIManager.instance.UpdateGoldText(goldCollected, goldChange);
     }
 }

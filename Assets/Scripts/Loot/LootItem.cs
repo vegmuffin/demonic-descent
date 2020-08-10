@@ -52,20 +52,23 @@ public class LootItem : MonoBehaviour
         
         if(gameObject.name.Contains("Potion"))
         {
+
             GameObject player = MovementManager.instance.player;
             var playerUnit = player.GetComponent<Unit>();
+            int previousHealth = playerUnit.health;
             if(playerUnit.health + customValue > playerUnit.maxHealth)
                 playerUnit.health = playerUnit.maxHealth;
             else
                 playerUnit.health += customValue;
             
-            UIManager.instance.HealthChange(player, playerUnit.health, true, true);
+            UIManager.instance.HealthChange(player, previousHealth, playerUnit.health, true, true);
         }
 
         if(gameObject.name.Contains("Gold"))
         {
             LootManager.instance.goldCollected += customValue;
-            UIManager.instance.UpdateGoldText(LootManager.instance.goldCollected);
+            string goldChange = "+" + customValue.ToString();
+            UIManager.instance.UpdateGoldText(LootManager.instance.goldCollected, goldChange);
         }
 
         LootManager.instance.lootDict[gameObject].GetComponent<UIComponent>().DestroyCheck();

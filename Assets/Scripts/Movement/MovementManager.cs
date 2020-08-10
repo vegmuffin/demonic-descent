@@ -9,11 +9,13 @@ public class MovementManager : MonoBehaviour
 
     [SerializeField] private Camera mainCamera = default;
     [SerializeField] private Tile movementTile = default;
+    public GameObject dustParticle;
+    public float dustDepleteSpeed;
     [Space]
     [SerializeField] private Color mouseTintColor = default;
     [SerializeField] private Color pathfindingColor = default;
     // unitSpeed represents how fast the movement executes, not how many tiles can the unit move.
-    public int unitSpeed;
+    public AnimationCurve unitSpeedCurve;
 
     // For A* Pathfinding, to access the tile on the grid by index, add startX and startY
     [HideInInspector] public GridNode[,] pathfindingGrid;
@@ -113,7 +115,7 @@ public class MovementManager : MonoBehaviour
 
                 CursorManager.instance.SetCursor("DEFAULT");
 
-                UIActionPanel.instance.EnableDisableButtons(false);
+                UIManager.instance.EnableDisableButtons(false);
 
                 StartCoroutine(playerMovement.MoveAlongPath(currentPosition, path, path.Length, isAttacking, target));
             }

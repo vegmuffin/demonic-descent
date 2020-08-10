@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+[RequireComponent(typeof(UnitMovement))]
 public class Unit : MonoBehaviour
 {
     public Sprite combatQueueImage;
@@ -36,13 +37,14 @@ public class Unit : MonoBehaviour
         if(transform.tag == "Player")
         {
             thisAnimator = transform.GetComponent<Animator>();
-            UIManager.instance.InitiatePlayerUI(health, combatPoints, damage);
         }
-        spriteRenderer = transform.GetComponent<SpriteRenderer>();
+        spriteRenderer = transform.Find("UnitSprite").GetComponent<SpriteRenderer>();
 
         defaultShader = Shader.Find("Sprites/Default");
         flashShader = Shader.Find("GUI/Text Shader");
         maxHealth = health;
+        health = maxHealth;
+        currentCombatPoints = combatPoints;
     }
 
     private void Start()
@@ -93,6 +95,7 @@ public class Unit : MonoBehaviour
 
     public void OnDamage(Unit damageDealer, int damageAmount)
     {
+        int previousHealth = this.health;
         this.health -= damageAmount;
         StartCoroutine(FlashSprite());
 
@@ -104,7 +107,7 @@ public class Unit : MonoBehaviour
 
             // Calling UI to dispose of the dead unit.
             int index = CombatManager.instance.GetObjectIndex(gameObject);
-            UIManager.instance.AlternativeDeathChange(gameObject);
+            UIManager.instance.DeathChange(gameObject);
 
             // If the cursor is on the dying unit, update it. NEEDS TO BE UPDATED SINCE NOW THE CURSOR IS AN OVERLAY IMAGE.
             var box = transform.GetComponent<BoxCollider2D>();
@@ -152,7 +155,7 @@ public class Unit : MonoBehaviour
                 if(GameStateManager.instance.CheckState("COMBAT"))
                 {
                     int index = CombatManager.instance.GetObjectIndex(gameObject);
-                    UIManager.instance.HealthChange(gameObject, health, isPlayer, false);
+                    UIManager.instance.HealthChange(gameObject, previousHealth, health, isPlayer, false);
                 }
                 StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
             }

@@ -135,7 +135,7 @@ public class CombatManager : MonoBehaviour
             Vector3Int playerPos = new Vector3Int((int)combatQueue[currentIndex].transform.position.x, (int)combatQueue[currentIndex].transform.position.y, 0);
             int speed = currentUnit.currentCombatPoints;
             MovementManager.instance.GenerateGrid(playerPos, speed, movementTilemap, movementColor);
-            UIActionPanel.instance.EnableDisableButtons(true);
+            UIManager.instance.EnableDisableButtons(true);
         }
         else if(whoseTurn == "Skeleton")
         {
@@ -148,7 +148,7 @@ public class CombatManager : MonoBehaviour
     {
         if(combatQueue[currentIndex].tag == "Player")
         {
-            UIActionPanel.instance.EnableDisableButtons(false);
+            UIManager.instance.EnableDisableButtons(false);
         }
 
         UIManager.instance.updatingCombatPoints = null;
@@ -191,6 +191,7 @@ public class CombatManager : MonoBehaviour
         combatQueue.Clear();
         RoomManager.instance.currentRoom.enemyList.Clear();
         UIManager.instance.EndQueueUI();
+        UIManager.instance.ResetCombatPointsBar();
         ClearBlockages();
 
         // Creating a log entry.
