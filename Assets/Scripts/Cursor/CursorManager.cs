@@ -35,8 +35,6 @@ public class CursorManager : MonoBehaviour
     private Vector2 baseAnchor;
     private int showingPoints;
 
-    private string currentAttackDir = "";
-
     public enum CursorStates
     {
         DEFAULT,
@@ -124,69 +122,83 @@ public class CursorManager : MonoBehaviour
         rectTransform.position = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 1);
     }
 
-    public void SetCursor(string whichCursor)
+    public void SetCursor(string whichCursor, string dir)
     {
         if(whichCursor == "DEFAULT")
         {
             realCursor.sprite = defaultCursor;
             cursorRect.pivot = defaultPivot;
-            currentAttackDir = "none";
             cursorRect.eulerAngles = Vector3.zero;
+            currentState = CursorStates.DEFAULT;
 
             combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         } else if(whichCursor == "ATTACK")
         {
             realCursor.sprite = attackCursor;
             cursorRect.pivot = attackPivot;
+            currentState = CursorStates.ATTACK;
+            if(realCursor.sprite != defaultCursor)
+            {
+                switch(dir)
+                {
+                    case "bottom":
+                        cursorRect.eulerAngles = new Vector3(0, 0, 90f);
+                        combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x + 15f, baseAnchor.y);
+                        break;
+                    case "left":
+                        cursorRect.eulerAngles = Vector3.zero;
+                        combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x - 30f, baseAnchor.y + 15f);
+                        break;
+                    case "top":
+                        cursorRect.eulerAngles = new Vector3(0, 0, -90f);
+                        combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x - 15f, baseAnchor.y + 50f);
+                        break;
+                    case "right":
+                        cursorRect.eulerAngles = new Vector3(0, 0, 180f);
+                        combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x + 33f, baseAnchor.y + 14f);
+                        break;
+                }
+            }
         } else if(whichCursor == "MOVE")
         {
             realCursor.sprite = moveCursor;
             cursorRect.pivot = movePivot;
             cursorRect.eulerAngles = Vector3.zero;
+            currentState = CursorStates.MOVE;
+
+            combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         } else if(whichCursor == "CAST")
         {
             realCursor.sprite = castCursor;
             cursorRect.pivot = castPivot;
+            cursorRect.eulerAngles = Vector3.zero;
+            currentState = CursorStates.CAST;
+
+            combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         } else if(whichCursor == "CANNOT")
         {
             realCursor.sprite = cannotCursor;
             cursorRect.pivot = cannotPivot;
+            cursorRect.eulerAngles = Vector3.zero;
+            currentState = CursorStates.CANNOT;
+            
+            combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         } else if(whichCursor == "PICKUP")
         {
             realCursor.sprite = pickupCursor;
             cursorRect.pivot = pickupPivot;
+            cursorRect.eulerAngles = Vector3.zero;
+            currentState = CursorStates.PICKUP;
+
+            combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         } else if(whichCursor == "SHOOT")
         {
             realCursor.sprite = shootCursor;
             cursorRect.pivot = shootPivot;
-        }
-    }
+            cursorRect.eulerAngles = Vector3.zero;
+            currentState = CursorStates.SHOOT;
 
-    public void SetAttackCursorDir(string dir)
-    {
-        if(currentAttackDir != dir && realCursor.sprite != defaultCursor)
-        {
-            currentAttackDir = dir;
-
-            switch(dir)
-            {
-                case "bottom":
-                    cursorRect.eulerAngles = new Vector3(0, 0, 90f);
-                    combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x + 15f, baseAnchor.y);
-                    break;
-                case "left":
-                    cursorRect.eulerAngles = Vector3.zero;
-                    combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x - 30f, baseAnchor.y + 15f);
-                    break;
-                case "top":
-                    cursorRect.eulerAngles = new Vector3(0, 0, -90f);
-                    combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x - 15f, baseAnchor.y + 50f);
-                    break;
-                case "right":
-                    cursorRect.eulerAngles = new Vector3(0, 0, 180f);
-                    combatPointsIndicatorRect.anchoredPosition = new Vector2(baseAnchor.x + 33f, baseAnchor.y + 14f);
-                    break;
-            }
+            combatPointsIndicatorRect.anchoredPosition = baseAnchor;
         }
     }
 
@@ -216,7 +228,7 @@ public class CursorManager : MonoBehaviour
         combatPointsIndicator.gameObject.SetActive(true);
     }
 
-    public string GetMouseEnemyQuadrant(Bounds enemyBounds, Vector2 mousePos)
+    public string GetMouseEnemyTriangle(Bounds enemyBounds, Vector2 mousePos)
     {
         float xMin = enemyBounds.min.x;
         float xMax = enemyBounds.max.x;

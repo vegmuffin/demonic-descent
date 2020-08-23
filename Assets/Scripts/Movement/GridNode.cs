@@ -14,6 +14,8 @@ public class GridNode
     // For tracing the path back from the end node to the start.
     public GridNode parent;
 
+    public GameObject unitOnTop;
+
     public int fCost
     {
         get

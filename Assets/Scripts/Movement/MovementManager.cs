@@ -7,264 +7,49 @@ public class MovementManager : MonoBehaviour
 {
     public static MovementManager instance;
 
-    [SerializeField] private Camera mainCamera = default;
     [SerializeField] private Tile movementTile = default;
     public GameObject dustParticle;
     public float dustDepleteSpeed;
-    [Space]
-    [SerializeField] private Color mouseTintColor = default;
-    [SerializeField] private Color pathfindingColor = default;
-    // unitSpeed represents how fast the movement executes, not how many tiles can the unit move.
-    public AnimationCurve unitSpeedCurve;
+    public AnimationCurve unitSpeedCurve; // unitSpeed represents how fast the movement executes, not how many tiles can the unit move.
 
-    // For A* Pathfinding, to access the tile on the grid by index, add startX and startY
     [HideInInspector] public GridNode[,] pathfindingGrid;
     private List<Vector3Int> pathfindingTiles = new List<Vector3Int>();
-    private int gridStartX;
-    private int gridStartY;
+    private int gridOffsetX;
+    private int gridOffsetY;
     private int distanceX;
     private int distanceY;
-    private Vector3Int tempTilePos = Vector3Int.zero;
-    private Vector3 tempPos = Vector3.zero;
+
     private Tilemap wallTilemap;
     private Tilemap groundTilemap;
     private Tilemap movementTilemap;
 
     [HideInInspector] public GameObject player;
-    private UnitMovement playerMovement;
-    private Unit playerUnit;
-
-    private bool isHoveringAboveEnemy = false;
-    private Bounds enemyBounds;
 
     private void Awake()
     {
         instance = this;
-        mainCamera.orthographicSize = 10;
         player = GameObject.Find("Player");
         movementTilemap = GameObject.Find("MovementTilemap").GetComponent<Tilemap>();
         groundTilemap = GameObject.Find("GroundTilemap").GetComponent<Tilemap>();
         wallTilemap = GameObject.Find("WallTilemap").GetComponent<Tilemap>();
-        playerMovement = player.GetComponent<UnitMovement>();
-        playerUnit = player.GetComponent<Unit>();
     }
 
-    private void Update()
-    {
-        PlayerHover();
-        PlayerMove();
-    }
-
-    // This gets called when hovering over an UI component. Without this in place, tile doesn't reset and it needs to be re-hovered.
-    public void ResetTilePos()
-    {
-        // Tile is never used since in a 2D world, Z is always 0.
-        tempTilePos = new Vector3Int(0, 0, 1);
-    }
-
-    // If there is an available path to the target tile, move. Used by both EXPLORING and COMBAT states. And of course, if it's not moving lol.
-    private void PlayerMove()
-    {
-        if(Input.GetKeyDown(KeyCode.Mouse0) && (pathfindingTiles.Count != 0 || CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK) && !playerMovement.isMoving)
-        {
-            if(CursorManager.instance.inUse)
-                return;
-
-            if(GameStateManager.instance.CheckState("COMBAT"))
-                if(CombatManager.instance.currentUnit.isAttacking)
-                    return;
-
-            Vector3 playerPos = player.transform.position;
-            if(GetRealDistance(playerPos, tempTilePos) > 1 && pathfindingTiles.Count == 0)
-                return;
-            
-            // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state. 
-            if(GameStateManager.instance.CheckState("EXPLORING") || (GameStateManager.instance.CheckState("COMBAT") && CombatManager.instance.whoseTurn == "Player" && playerUnit.CanAct()))
-            {
-                // If EXPLORING, alter the game states a bit, since MOVING is also a state (might be used later). Else, clear the movement grid.
-                if(!GameStateManager.instance.CheckState("COMBAT"))
-                {
-                    GameStateManager.instance.ChangeState("MOVING");
-                }
-                else
-                {
-                    CombatManager.instance.movementTilemap.ClearAllTiles();
-                }
-
-                // Clearing previous tiles and starting the movement.
-                foreach(Vector3Int pos in pathfindingTiles)
-                    groundTilemap.SetColor(pos, Color.white);
-
-                playerMovement.remainingMoves = 0;
-                playerMovement.isMoving = true;
-
-                // Copy the pathfinding tiles into an array because when using pathfindingTiles.Count, it leads to issues if clicking very fast.
-                Vector3Int[] path = new Vector3Int[pathfindingTiles.Count];
-                pathfindingTiles.CopyTo(path);
-                pathfindingTiles.Clear();
-
-                bool isAttacking = false;
-                GameObject target = null;
-                if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK)
-                {
-                    isAttacking = true;
-                    Vector2 overlapCirclePos = new Vector2(tempTilePos.x+0.5f, tempTilePos.y+0.5f);
-                    target = Physics2D.OverlapCircle(overlapCirclePos, 0.33f).gameObject;
-                }
-                Vector3Int currentPosition = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
-
-                CursorManager.instance.SetCursor("DEFAULT");
-
-                UIManager.instance.EnableDisableButtons(false);
-
-                StartCoroutine(playerMovement.MoveAlongPath(currentPosition, path, path.Length, isAttacking, target));
-            }
-            
-        }
-    }
-
-    // Paints the tile on which the mouse is hovering.
-    private void PlayerHover()
-    {
-        if((GameStateManager.instance.CheckState("EXPLORING") || GameStateManager.instance.CheckState("COMBAT")) && !CombatManager.instance.initiatingCombatState && !playerMovement.isMoving)
-        {
-            if(CursorManager.instance.inUse)
-            {
-                ClearPathfindingTiles();
-                return;
-            }
-
-            // Getting the precise Vector3Int of the mouse position.
-            Vector3 precisePos = Vector3.zero;
-            Vector3Int mousePos = CursorManager.instance.GetTileBelowCursor(ref precisePos);
-
-            if(tempTilePos != mousePos || (isHoveringAboveEnemy && tempPos != precisePos))
-            {
-                // Reset color on the mouse-hovering tile.
-                groundTilemap.SetColor(tempTilePos, Color.white);
-                tempTilePos = mousePos;
-                tempPos = precisePos;
-
-                // If there are some painted pathfinding tiles, clear them.
-                ClearPathfindingTiles();
-
-                // Getting the exact grid position for the new tile.
-                int gridX = mousePos.x + Mathf.Abs(gridStartX);
-                int gridY = mousePos.y + Mathf.Abs(gridStartY);
-                bool isPosWalkable = pathfindingGrid[gridX, gridY].isWalkable;
-
-                bool cursorAttackState = CursorManager.instance.CheckState("ATTACK");
-
-                if(pathfindingTiles.Count == 0 && !cursorAttackState)
-                {
-                    CursorManager.instance.SetCursor("CANNOT");
-                    CursorManager.instance.DisableHoveringPoints();
-                }
-
-                // Let's color the pathfinding tiles and execute the pathfinding method.
-                if(isPosWalkable || cursorAttackState)
-                {
-                    groundTilemap.SetColor(mousePos, mouseTintColor);
-
-                    // Proceed fruther only if we are in EXPLORING state or it's our turn when in the COMBAT state.
-                    if((GameStateManager.instance.CheckState("COMBAT") && CombatManager.instance.whoseTurn == "Player") || GameStateManager.instance.CheckState("EXPLORING"))
-                    {
-                        // Pathfinding! Getting needed variables.
-                        Vector3Int playerPos = new Vector3Int((int)player.transform.position.x, (int)player.transform.position.y, 0);
-                        int speed = 0;
-                        bool isExploring = true;
-                        if(GameStateManager.instance.CheckState("COMBAT"))
-                        {
-                            isExploring = false;
-                            speed = playerUnit.currentCombatPoints;
-                        }
-
-                        bool isAttacking = false;
-                        if(cursorAttackState)
-                        {
-                            isAttacking = true;
-                            isHoveringAboveEnemy = true;
-
-                            Vector2 overlapCirclePos = new Vector2(tempTilePos.x+0.5f, tempTilePos.y+0.5f);
-                            Collider2D[] cols = Physics2D.OverlapCircleAll(overlapCirclePos, 0.33f);
-                            GameObject enemy = null;
-                            foreach(Collider2D col in cols)
-                            {
-                                if(col.gameObject.tag == "Enemy")
-                                {
-                                    enemy = col.gameObject;
-                                    break;
-                                }
-                            }
-                            enemyBounds = enemy.GetComponent<BoxCollider2D>().bounds;
-                            
-                            string whichQuadrant = CursorManager.instance.GetMouseEnemyQuadrant(enemyBounds, precisePos);
-                            mousePos = GetAttackEndTile(whichQuadrant, mousePos);
-                            CursorManager.instance.SetAttackCursorDir(whichQuadrant);
-                        }
-                        else
-                        {
-                            isHoveringAboveEnemy = false;
-                        }
-                            
-                        
-                        List<GridNode> pathToCoord = Pathfinding(playerPos, mousePos, speed, isExploring, movementTilemap, false, isAttacking);
-                        int endIndex = 0;
-                        for(int i = pathToCoord.Count-1; i >= endIndex; --i)
-                        {
-                            Vector3Int coord = new Vector3Int(pathToCoord[i].position.x, pathToCoord[i].position.y, 0);
-                            groundTilemap.SetColor(coord, pathfindingColor);
-                            pathfindingTiles.Add(coord);
-                        }
-
-                        if(!cursorAttackState && pathfindingTiles.Count > 0)
-                        {
-                            CursorManager.instance.SetCursor("MOVE");
-                        }
-
-                        if(GameStateManager.instance.CheckState("COMBAT"))
-                        {
-                            // How many combat points we're about to consume:
-                            int hoveringCombatPoints = 0;
-                            
-                            hoveringCombatPoints +=  pathfindingTiles.Count;   // Each tile costs 1 combat point.
-                            if(cursorAttackState)
-                                hoveringCombatPoints += 2; // Attacking costs 2.
-
-                            playerUnit.hoveringCombatPoints = hoveringCombatPoints;
-                            
-                            if(pathfindingTiles.Count > 0)
-                                CursorManager.instance.EnableHoveringPoints();
-                        }
-                    }
-                }
-            }
-            
-        }
-    }
-
-    private void ClearPathfindingTiles()
-    {
-        if(pathfindingTiles.Count == 0)
-            return;
-
-        foreach(Vector3Int pos in pathfindingTiles)
-        {
-            groundTilemap.SetColor(pos, Color.white);
-        }
-        pathfindingTiles.Clear();
-    }
-
-    // Populating grid (bounds are lowest X/Y existing tile and highest X/Y existing tile).
+    // Populating the entire pathfinding grid.
     public void PopulateGrid(int startX, int startY, int endX, int endY)
     {
-        gridStartX = startX;
-        gridStartY = startY;
+        /* Since arrays cannot have negative indices, it is impossible to store coordinates as incides. Hence, we create a
+        min X and min Y offset, so the most 'bottom-left' existing coordinate is (0, 0). */
+        gridOffsetX = Mathf.Abs(startX);
+        gridOffsetY = Mathf.Abs(startY);
+        PlayerController.instance.SetGridOffset(gridOffsetX, gridOffsetY);
+
+        // Getting dimension sizes for both axes to initialize the pathfinding grid.
         distanceX = Mathf.Abs(endX - startX);
         distanceY = Mathf.Abs(endY - startY);
         pathfindingGrid = new GridNode[distanceX, distanceY];
 
-        // This will be costly, but it only runs once per layout
+        /* Costly operation but it runs only one time. Creates GridNode classes for each tile. GridNode contains information
+        such as position, walkability, pathfinding helpers and what unit is standing on top of it.  */
         for(int x = 0; x < distanceX; ++x)
         {
             for(int y = 0; y < distanceY; ++y)
@@ -272,13 +57,12 @@ public class MovementManager : MonoBehaviour
                 Vector3Int tilePos = new Vector3Int(x+startX, y+startY, 0);
                 pathfindingGrid[x, y] = new GridNode(false, (Vector2Int)tilePos, x, y);
 
-                // Later on I will probably have a method that checks if a given tile can be walkable.
                 if(groundTilemap.HasTile(tilePos) && !wallTilemap.HasTile(tilePos))
                     pathfindingGrid[x, y] = new GridNode(true, (Vector2Int)tilePos, x, y);
             }
         }
 
-        // Invalidate room preset obstacle tiles.
+        // After placing presets, check for obstacles and update tile walkability for tiles that have those obstacles.
         foreach(Room room in RoomManager.instance.allRooms)
         {
             if(room.position.x == 0 && room.position.y == 0)
@@ -296,7 +80,7 @@ public class MovementManager : MonoBehaviour
                     {
                         Vector3 worldPos = roomTilemap.GetCellCenterWorld(cellPos);
                         Vector3Int worldPosInt = new Vector3Int(Mathf.FloorToInt(worldPos.x), Mathf.FloorToInt(worldPos.y), 0);
-                        UpdateTileWalkability(worldPosInt, false);
+                        UpdateTileWalkability(worldPosInt, false, null);
                     }
                 }
             }
@@ -304,125 +88,69 @@ public class MovementManager : MonoBehaviour
             ShopManager.instance.InvalidateShopTile();
         }
 
-        // Checking for all enemies and units
+        // Updating the starting tile of the player. This is just to be safe, not to hardcode the starting (0, 0) position of the player.
         foreach(GameObject player in GameObject.FindGameObjectsWithTag("Player"))
         {
-            Vector3Int playerPos = new Vector3Int((int)player.transform.position.x + Mathf.Abs(startX), (int)player.transform.position.y + Mathf.Abs(startY), 0);
-            pathfindingGrid[playerPos.x, playerPos.y].isWalkable = false;
+            Vector3Int playerPos = new Vector3Int((int)player.transform.position.x + gridOffsetX, (int)player.transform.position.y + gridOffsetY, 0);
+            GridNode tile = pathfindingGrid[playerPos.x, playerPos.y];
+            tile.isWalkable = false;
+            tile.unitOnTop = player;
         }
+        // Doing the same for all enemies.
         foreach(GameObject enemy in GameObject.FindGameObjectsWithTag("Enemy"))
         {
-            Vector3Int enemyPos = new Vector3Int((int)enemy.transform.position.x + Mathf.Abs(startX), (int)enemy.transform.position.y + Mathf.Abs(startY), 0);
-            pathfindingGrid[enemyPos.x, enemyPos.y].isWalkable = false;
+            Vector3Int enemyPos = new Vector3Int((int)enemy.transform.position.x + gridOffsetX, (int)enemy.transform.position.y + gridOffsetY, 0);
+            GridNode tile = pathfindingGrid[enemyPos.x, enemyPos.y];
+            tile.isWalkable = false;
+            tile.unitOnTop = enemy;
         }
     }
 
-    // Diamond-shape grid generation.
-    public void GenerateGrid(Vector3Int coord, int speed, Tilemap tilemap, Color tileColor)
+    // Diamond shape grid generation.
+    public void GenerateAttackGrid(Vector3Int coord, int speed, Tilemap tilemap, Color tileColor)
     {
-        // Clearing previous tiles
-        tilemap.ClearAllTiles();
-
-        // Creating the top and then the bottom of the diamond by constantly increasing/decreasing the amount of tiles to spawn.
-        int tileCount = 1;
-        for(int i = -speed; i <= 0; ++i)
-        {
-            if(tileCount == 1)
-            {
-                Vector3Int tilePos = new Vector3Int(coord.x, coord.y+speed, 0);
-                if(!wallTilemap.HasTile(tilePos))
-                {
-                    if(groundTilemap.HasTile(tilePos))
-                    {
-                        tilemap.SetTile(tilePos, movementTile);
-                        tilemap.SetColor(tilePos, tileColor);
-                    }   
-                }  
-            }      
-            else
-            {
-                int step = (tileCount-1)/2;
-                int yCoord = coord.y+Mathf.Abs(i);
-                for(int j = -step; j <= step; ++j)
-                {
-                    Vector3Int tilePos = new Vector3Int(coord.x+j, yCoord, 0);
-                    if(!wallTilemap.HasTile(tilePos))
-                    {
-                        if(groundTilemap.HasTile(tilePos))
-                        {
-                            tilemap.SetTile(tilePos, movementTile);
-                            tilemap.SetColor(tilePos, tileColor);
-                        }   
-                    }
-                        
-                }
-            }
-            
-            tileCount += 2;
-        }
-        tileCount -= 4;
-        for(int i = -1; i >= -speed; --i)
-        {
-            if(tileCount == 1)
-            {
-                Vector3Int tilePos = new Vector3Int(coord.x, coord.y-speed, 0);
-                if(!wallTilemap.HasTile(tilePos))
-                {
-                    if(groundTilemap.HasTile(tilePos))
-                    {
-                        tilemap.SetTile(tilePos, movementTile);
-                        tilemap.SetColor(tilePos, tileColor);
-                    }   
-                }
-            }
-            else
-            {
-                int step = (tileCount-1)/2;
-                int yCoord = coord.y-Mathf.Abs(i);
-                for(int j = -step; j <= step; ++j)
-                {
-                    Vector3Int tilePos = new Vector3Int(coord.x+j, yCoord, 0);
-                    if(!wallTilemap.HasTile(tilePos))
-                    {
-                        if(groundTilemap.HasTile(tilePos))
-                        {
-                            tilemap.SetTile(tilePos, movementTile);
-                            tilemap.SetColor(tilePos, tileColor);
-                        }
-                    }
-                        
-                }
-            }
-            tileCount -= 2;
-        }
-
+        // Getting square bounds around the specified coordinate.
         int startX = coord.x - speed;
         int startY = coord.y - speed;
         int endX = coord.x + speed;
         int endY = coord.y + speed;
+
+        /* Previously there was a code that specifically created a diamond-shaped grid, but there is no short, clean algorithm
+        to do that, so I ditched it in favour of just creating a square-shaped grid and then invalidating all unreachable tiles. */
         for(int x = startX; x <= endX; ++x)
         {
             for(int y = startY; y <= endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true, false);
+                tilemap.SetTile(tilePos, movementTile);
+                tilemap.SetColor(tilePos, tileColor);
+            }
+        }
+
+        // Invalidating unreachable tiles (executing pathfinding there and seeing if it returns any path).
+        for(int x = startX; x <= endX; ++x)
+        {
+            for(int y = startY; y <= endY; ++y)
+            {
+                Vector3Int tilePos = new Vector3Int(x, y, 0);
+                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true);
                 if(path.Count == 0)
                     tilemap.SetTile(tilePos, null);
             }
         }
     }
 
-    // A*
+    // A* pathfinding algorithm modified to fit this project.
     public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, 
-                                      Tilemap whichTilemap, bool gridGeneration, bool isAttacking)
+                                      Tilemap whichTilemap, bool gridGeneration)
     {
 
         // Empty path.
         List<GridNode> path = new List<GridNode>();
 
         // Some checks if the end coordinate is out of bounds or if hovering above a non-movementTilemap tile
-        Vector3Int start = new Vector3Int(Mathf.Abs(gridStartX)+startCoord.x, Mathf.Abs(gridStartY)+startCoord.y, 0);
-        Vector3Int end = new Vector3Int(Mathf.Abs(gridStartX)+endCoord.x, Mathf.Abs(gridStartY)+endCoord.y, 0);
+        Vector3Int start = new Vector3Int(gridOffsetX+startCoord.x, gridOffsetY+startCoord.y, 0);
+        Vector3Int end = new Vector3Int(gridOffsetX+endCoord.x, gridOffsetY+endCoord.y, 0);
         if(end.x < 0 || end.x > pathfindingGrid.GetLength(0) || end.y < 0 || end.y > pathfindingGrid.GetLength(1))
         {
             return path;
@@ -432,8 +160,8 @@ public class MovementManager : MonoBehaviour
             return path;
         }
 
-        int gridX = Mathf.Abs(gridStartX) + endCoord.x;
-        int gridY = Mathf.Abs(gridStartY) + endCoord.y;
+        int gridX = gridOffsetX + endCoord.x;
+        int gridY = gridOffsetY + endCoord.y;
         if(!pathfindingGrid[gridX, gridY].isWalkable)
             return path;
         
@@ -545,11 +273,6 @@ public class MovementManager : MonoBehaviour
         return 14*dstX + 10*(dstY-dstX);
     }
 
-    private float GetRealDistance(Vector3 pointA, Vector3 pointB)
-    {
-        return (pointA-pointB).sqrMagnitude;
-    }
-
     // Getting the valid neighbours. For this particular implementation, we do not need the diagonal tiles as we are only moving in cardinal directions.
     private List<GridNode> GetNeighbours(GridNode node)
     {
@@ -582,40 +305,11 @@ public class MovementManager : MonoBehaviour
             return false;   
     }
 
-    public void UpdateTileWalkability(Vector3Int pos, bool walkability)
+    public void UpdateTileWalkability(Vector3Int pos, bool walkability, GameObject unitOnTop)
     {
-        int gridX = Mathf.Abs(gridStartX) + pos.x;
-        int gridY = Mathf.Abs(gridStartY) + pos.y;
+        int gridX = gridOffsetX + pos.x;
+        int gridY = gridOffsetY + pos.y;
         pathfindingGrid[gridX, gridY].isWalkable = walkability;
+        pathfindingGrid[gridX, gridY].unitOnTop = unitOnTop;
     }
-
-    private Vector3Int GetAttackEndTile(string whichQuadrant, Vector3Int currentEndTile)
-    {
-         switch(whichQuadrant)
-         {
-            case "bottom":
-                return new Vector3Int(currentEndTile.x, currentEndTile.y - 1, 0);
-            case "left":
-                return new Vector3Int(currentEndTile.x - 1, currentEndTile.y, 0);
-            case "top":
-                return new Vector3Int(currentEndTile.x, currentEndTile.y + 1, 0);
-            case "right":
-                return new Vector3Int(currentEndTile.x + 1, currentEndTile.y, 0);
-         }
-
-         return Vector3Int.zero;
-    }
-
-    /* void OnDrawGizmos()
-    {
-        Vector3 v1 = new Vector3(gridStartX, gridStartY, 10);
-        Vector3 v2 = new Vector3(gridStartX, gridStartY + distanceY, 10);
-        Vector3 v3 = new Vector3(gridStartX + distanceX, gridStartY);
-        Vector3 v4 = new Vector3(gridStartX + distanceX, gridStartY + distanceY);
-
-        Gizmos.DrawLine(v1, v2); // BottomLeft to TopLeft
-        Gizmos.DrawLine(v1, v3); // BottomLeft to BottomRight
-        Gizmos.DrawLine(v4, v3); // TopRight to BottomRight
-        Gizmos.DrawLine(v4, v2); // TopRight to TopLeft
-    } */
 }

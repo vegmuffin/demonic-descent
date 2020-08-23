@@ -25,11 +25,12 @@ public class Unit : MonoBehaviour
     [HideInInspector] public bool isDying = false;
     [HideInInspector] public bool isAttacking = false;
     private Animator thisAnimator;
-    private string lookDir = "Front";
 
     private SpriteRenderer spriteRenderer;
     private Shader defaultShader;
     private Shader flashShader;
+
+    [HideInInspector] public GameObject currentTarget;
 
     private void Awake()
     {
@@ -45,6 +46,7 @@ public class Unit : MonoBehaviour
         maxHealth = health;
         health = maxHealth;
         currentCombatPoints = combatPoints;
+        currentTarget = gameObject;
     }
 
     private void Start()
@@ -62,35 +64,32 @@ public class Unit : MonoBehaviour
     private void AggroGrid()
     {
         Vector3Int pos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
-        MovementManager.instance.GenerateGrid(pos, aggroRange, movementTilemap, aggroColor);
+        MovementManager.instance.GenerateAttackGrid(pos, aggroRange, movementTilemap, aggroColor);
     }
 
-    // Update mouse cursor.
-    private void OnMouseOver()
+    public void OnAttack(Vector2 dir)
     {
-        if(isEnemy)
+        var item = transform.GetComponent<AttackItem>();
+        item.target = currentTarget;
+        isAttacking = true;
+        item.BasicAttack(dir, currentTarget.transform.position);
+    }
+
+    public void OnAttackEnd(float angle)
+    {
+        if(GameStateManager.instance.CheckState("COMBAT"))
         {
-            if(CursorManager.instance.currentState != CursorManager.CursorStates.ATTACK)
-            {
-                if(isDying)
-                {
-                    CursorManager.instance.SetCursor("DEFAULT");
-                    CursorManager.instance.currentState = CursorManager.CursorStates.DEFAULT;
-                }  
-                else
-                {
-                    CursorManager.instance.currentState = CursorManager.CursorStates.ATTACK;
-                    CursorManager.instance.SetCursor("ATTACK");
-                }
-            }
+            currentCombatPoints -= 2; // Basic attack costs 2 combat points.
+            UIManager.instance.UpdateCombatPoints(currentCombatPoints-2, currentCombatPoints, combatPoints, gameObject);
         }
-    }
 
-    private void OnMouseExit()
-    {
-        CursorManager.instance.currentState = CursorManager.CursorStates.DEFAULT;
-        CursorManager.instance.SetCursor("DEFAULT");
-        CursorManager.instance.SetAttackCursorDir("left");
+        // Updating health and calling the OnDamage method.
+        var targetUnit = currentTarget.GetComponent<Unit>();
+
+        // DAMAGE AMOUNT
+        targetUnit.OnDamage(this, damage);
+
+        CameraManager.instance.CameraShake(angle, 0.8f);
     }
 
     public void OnDamage(Unit damageDealer, int damageAmount)
@@ -101,29 +100,24 @@ public class Unit : MonoBehaviour
 
         if(health <= 0)
         {
-            // Creating a log entry.
+            /* // Creating a log entry.
             string logEntry = "<color=#3399FF>" + damageDealer.realName + "</color> killed <color=#FF9900>" + this.realName + "</color> with a final blow of <color=#FF3333>" + damageAmount + "</color> damage!";
-            UILog.instance.NewLogEntry(logEntry);
+            UILog.instance.NewLogEntry(logEntry); */
 
             // Calling UI to dispose of the dead unit.
             int index = CombatManager.instance.GetObjectIndex(gameObject);
             UIManager.instance.DeathChange(gameObject);
 
-            // If the cursor is on the dying unit, update it. NEEDS TO BE UPDATED SINCE NOW THE CURSOR IS AN OVERLAY IMAGE.
-            var box = transform.GetComponent<BoxCollider2D>();
-            if(CursorManager.instance.currentState == CursorManager.CursorStates.ATTACK && box.bounds.Contains((Vector2)CursorManager.instance.transform.position))
-                OnMouseExit();
-
             isDying = true;
-            MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), true);
+            MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), true, null);
             CombatManager.instance.RemoveFromQueue(transform.gameObject);
             Destroy(transform.parent.gameObject, deathTime);
 
 
             if(gameObject.name == "Player")
             {
-                logEntry = "<color=#FFFFFF>GAME OVER!</color>";
-                UILog.instance.NewLogEntry(logEntry);
+                /* logEntry = "<color=#FFFFFF>GAME OVER!</color>";
+                UILog.instance.NewLogEntry(logEntry); */
             }
             else
             {
@@ -157,60 +151,13 @@ public class Unit : MonoBehaviour
                     int index = CombatManager.instance.GetObjectIndex(gameObject);
                     UIManager.instance.HealthChange(gameObject, previousHealth, health, isPlayer, false);
                 }
-                StartCoroutine(CombatManager.instance.WaitAfterAttack(this));
+                StartCoroutine(CombatManager.instance.WaitAfterAttack(damageDealer));
             }
 
-            // Creating a log entry.
+            /* // Creating a log entry.
             string logEntry = "<color=#3399FF>" + damageDealer.realName + "</color> dealt <color=#FF3333>" + damageAmount + "</color> damage to <color=#FF9900>" + this.realName + "</color>.";
-            UILog.instance.NewLogEntry(logEntry);
+            UILog.instance.NewLogEntry(logEntry); */
         }
-    }
-
-    public bool CanAct()
-    {
-        if(hoveringCombatPoints <= currentCombatPoints)
-            return true;
-        return false;
-    }
-
-    public void PlayAnimation(Vector2 dir, string animationName, float speed)
-    {
-        thisAnimator.SetFloat("animSpeed", speed);
-        string name = animationName + "Animation";
-        if(dir == Vector2.left)
-        {
-            name += "Left";
-            lookDir = "Left";
-        }
-        else if(dir == Vector2.right)
-        {
-            name += "Right";
-            lookDir = "Right";
-        }  
-        else if(dir == Vector2.down)
-        {
-            name += "Front";
-            lookDir = "Front";
-        }
-        else if(dir == Vector2.up)
-        {
-            name += "Back";
-            lookDir = "Back";
-        }  
-        thisAnimator.Play(name);
-    }
-
-    public void OnAttackAnimationEnd()
-    {
-        string idleName = "Idle";
-        if(lookDir == "Left")
-            PlayAnimation(Vector2.left, idleName, 0.5f);
-        else if(lookDir == "Right")
-            PlayAnimation(Vector2.right, idleName, 0.5f);
-        else if(lookDir == "Front")
-            PlayAnimation(Vector2.down, idleName, 0.5f);
-        else if(lookDir == "Back")
-            PlayAnimation(Vector2.up, idleName, 0.5f);
     }
 
     private IEnumerator FlashSprite()
@@ -240,5 +187,23 @@ public class Unit : MonoBehaviour
         }
 
         yield break;
+    }
+
+    public bool CheckEngagement()
+    {
+        // If the GameObject of this unit has Player tag and if it isn't combat, check for exisiting aggro tiles to initiate combat.
+        if(transform.CompareTag("Player") && !GameStateManager.instance.CheckState("COMBAT"))
+        {
+            Vector3Int playerPos = new Vector3Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y), 0);
+            foreach(GameObject enemy in CombatManager.instance.enemyList)
+            {
+                Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;
+                if(unitAggroTilemap.HasTile(playerPos))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

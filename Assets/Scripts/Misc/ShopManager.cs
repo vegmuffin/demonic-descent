@@ -157,7 +157,7 @@ public class ShopManager : MonoBehaviour
     public void InvalidateShopTile()
     {
         Vector3Int shopPos = new Vector3Int(Mathf.FloorToInt(transform.position.x), Mathf.FloorToInt(transform.position.y), 0);
-        MovementManager.instance.UpdateTileWalkability(shopPos, false);
+        MovementManager.instance.UpdateTileWalkability(shopPos, false, null);
     }
 
 }

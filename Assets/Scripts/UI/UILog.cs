@@ -4,11 +4,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+// Currently unused
 public class UILog : MonoBehaviour
 {
     public static UILog instance;
 
-    [SerializeField] private GameObject logText;
+    [SerializeField] private GameObject logText = default;
 
     private Vector2 firstTextPos;
     private RectTransform thisRect;

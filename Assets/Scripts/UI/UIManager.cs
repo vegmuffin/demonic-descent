@@ -28,8 +28,8 @@ public class UIManager : MonoBehaviour
     private Transform queuePanel;
     private RectTransform queuePanelRTransform;
     private RectTransform combatVisRect;
-    private Button skipButton;
-    private Button waitButton;
+    [HideInInspector] public Button skipButton;
+    [HideInInspector] public Button waitButton;
     private Vector2 queueElementSize;
     private float combatVisualisationBaseHeight;
     [Space]
@@ -313,15 +313,15 @@ public class UIManager : MonoBehaviour
                 ++totalQueueElements;
 
         int refillCount = maxCombatQueueElements - totalQueueElements;
-        List<GameObject> combatQueue = CombatManager.instance.combatQueue;
-        int combatQueueCount = combatQueue.Count;
+        List<GameObject> combatOrder = CombatManager.instance.combatOrder;
+        int combatQueueCount = combatOrder.Count;
 
         int counter = lastRoundElements;
         for(int i = totalQueueElements; i < maxCombatQueueElements; ++i)
         {
             if(i < combatQueueCount)
             {
-                GameObject combatUnit = combatQueue[i];
+                GameObject combatUnit = combatOrder[i];
                 GameObject elementInstance = CreatePrimaryCombatQueueElement(combatUnit, currentRound);
 
                 // Since the position are not driven by a layout group, we have to do it manually.
@@ -346,9 +346,8 @@ public class UIManager : MonoBehaviour
                 
                 int roundTexts = GetTotalRoundTexts();
                 float space = spaceAfterRound * roundTexts;
-                GameObject combatUnit = combatQueue[counter];
+                GameObject combatUnit = combatOrder[counter];
                 GameObject elementInstance = CreateSecondaryCombatQueueElement(combatUnit, lastRoundVisible);
-
 
                 RectTransform elementRTransform = elementInstance.GetComponent<RectTransform>();
                 Vector2 newPos = new Vector2(200f, i*queueElementSize.y*-1 - space);
@@ -523,8 +522,7 @@ public class UIManager : MonoBehaviour
 
     public void UpdateCombatPoints(int previousCombatPoints, int currentCombatPoints, int maxCombatPoints, GameObject combatUnit)
     {
-        if(updatingCombatPoints == null)
-            updatingCombatPoints = GetCPTextFromElement(combatUnit);
+        updatingCombatPoints = GetCPTextFromElement(combatUnit);
 
         // Updating the combat queue element combat points.
         UpdateText(updatingCombatPoints.transform, currentCombatPoints.ToString());
@@ -622,15 +620,41 @@ public class UIManager : MonoBehaviour
 
     public void WaitOnClick()
     {
+        DeselectButton();
+        waitButton.interactable = false;
+        skipButton.interactable = false;
+
         if(!GameStateManager.instance.CheckState("COMBAT"))
             return;
 
-        UILog.instance.NewLogEntry("Non existent functionality! :(");
+        List<RearrangementElement> elementList = new List<RearrangementElement>();
+        string whoseTurn = CombatManager.instance.whoseTurn;
+        int currentRound = CombatManager.instance.currentRound;
+        for(int i = 1; i < rounds[currentRound-1].Count; ++i)
+        {
+            var elementScript = rounds[currentRound-1][i].GetComponent<QueueElement>();
+            var rect = rounds[currentRound-1][i].GetComponent<RectTransform>();
+            if(elementScript.attachedGameObject.name == whoseTurn)
+            {
+                Vector2 newPos = new Vector2(rect.anchoredPosition.x, rect.anchoredPosition.y - (rounds[currentRound-1].Count-2)*queueElementSize.y);
+                RearrangementElement newElement = new RearrangementElement(rect.anchoredPosition, newPos, rect);
+                elementList.Insert(0, newElement);
+            }
+            else
+            {
+                Vector2 newPos = new Vector2(rect.anchoredPosition.x, rect.anchoredPosition.y + queueElementSize.y);
+                RearrangementElement newElement = new RearrangementElement(rect.anchoredPosition, newPos, rect);
+                elementList.Add(newElement);
+            }
+        }
+
+        CombatManager.instance.movementTilemap.ClearAllTiles();
+        StartCoroutine(UIAnimations.instance.RearrangeElements("WAIT", elementList));
     }
 
     public void SkipOnClick()
     {
-        UIManager.instance.DeselectButton();
+        DeselectButton();
 
         if(!GameStateManager.instance.CheckState("COMBAT"))
             return;
@@ -639,10 +663,13 @@ public class UIManager : MonoBehaviour
         CombatManager.instance.NextTurn();
     }
 
-    public void EnableDisableButtons(bool enable)
+    public void PushDownElement(int index)
     {
-        skipButton.interactable = enable;
-        waitButton.interactable = enable;
+        // Remove the unit from the queue and re-add it so that it drops down the queue.
+        int currentRound = CombatManager.instance.currentRound;
+        var tmp = rounds[currentRound-1][index];
+        rounds[currentRound-1].RemoveAt(index);
+        rounds[currentRound-1].Add(tmp);
     }
 
     // temporary (or not)

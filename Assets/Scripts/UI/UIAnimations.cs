@@ -51,6 +51,9 @@ public class UIAnimations : MonoBehaviour
     [Header("Element LAST animation")]
     [SerializeField] private AnimationCurve elementLastSpeedCurve = default;  
 
+    [Header("Element WAIT animation")]
+    [SerializeField] private AnimationCurve elementWaitSpeedCurve = default;
+
     [Header("UI Bar animation")]
     [SerializeField] private float healthDepleteSpeed = default;
     [SerializeField] private float healthBufferPeriod = default;
@@ -64,10 +67,8 @@ public class UIAnimations : MonoBehaviour
     private Image cpBar;
     private float healthDepleteTimer = 0f;
     [HideInInspector] public bool isHealthDepleteTimerRunning = false;
-    private float healthDepleteColorLerp = 0f;
     private float cpDepleteTimer = 0f;
     [HideInInspector] public bool isCPDepleteTimerRunning = false;
-    private float cpDepleteColorLerp = 0f;
 
     [Header("Gold flash animation")]
     public Vector2 goldTextOffset;
@@ -183,6 +184,8 @@ public class UIAnimations : MonoBehaviour
             curve = elementShiftSpeedCurve;
         else if(whichStage == "LAST")
             curve = elementLastSpeedCurve;
+        else if(whichStage == "WAIT")
+            curve = elementWaitSpeedCurve;
         else
             yield break;
         
@@ -243,6 +246,8 @@ public class UIAnimations : MonoBehaviour
             }
             else if(whichStage == "LAST")
                 CombatManager.instance.ExecuteTurns();
+            else if(whichStage == "WAIT")
+                CombatManager.instance.AfterWait(elementList[0].rect.GetComponent<QueueElement>().attachedGameObject);
         }
 
 

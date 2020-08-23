@@ -5,23 +5,30 @@ using UnityEngine.Tilemaps;
 
 public class UnitMovement : MonoBehaviour
 {
-    [HideInInspector] public int remainingMoves = default;
     [HideInInspector] public bool isMoving = false;
-    [HideInInspector] public GameObject target = null;
 
-    private Transform tr;
     private Unit unit;
     private Vector2 lastDirection = Vector2.zero;
     private AnimationCurve unitSpeedCurve;
-    private bool rotateBool = false;
-    private float rotateRange = 7f;
     private Transform unitSprite;
     private GameObject dustParticle;
     private float dustDepleteSpeed;
 
+    private float moveTimer = 0f;
+    private Vector3Int[] path;
+    private int pathLength = 0;
+    private bool isAttacking = false;
+    private int currentTileIndex = 0;
+    private Vector2 movingPos = Vector2.zero;
+    private bool engagement = false;
+
+    private Vector3 startRot = Vector3.zero;
+    private Vector3 endRot = Vector3.zero;
+    private bool rotateBool = false;
+    private float rotateRange = 7f;
+
     private void Awake()
     {
-        tr = transform;
         unit = transform.GetComponent<Unit>();
         unitSpeedCurve = MovementManager.instance.unitSpeedCurve;
         unitSprite = transform.Find("UnitSprite");
@@ -29,72 +36,132 @@ public class UnitMovement : MonoBehaviour
         dustDepleteSpeed = MovementManager.instance.dustDepleteSpeed;
     }
 
-    // Path is divided into grid nodes, the outer enumerator walks through all of the nodes.
-    public IEnumerator MoveAlongPath(Vector3Int startNode, Vector3Int[] path, int combatPoints, bool isAttacking, GameObject target)
+    private void Update()
     {
-        this.target = target;
+        Move();
+    }
 
-        // While we are still moving, lerp-move towards the end of the path.
-        while(remainingMoves < combatPoints)
+    public void StartMoving(Vector3Int[] path, int pathLength, bool isAttacking)
+    {
+        this.path = path;
+        this.pathLength = pathLength;
+        this.isAttacking = isAttacking;
+
+        // There is no path to traverse, move along to actions that occur at the end of moving.
+        if(pathLength == 0)
         {
-            // If combat has been initiated, we have to come to a stop.
-            if(GameStateManager.instance.CheckState("COMBAT") && CombatManager.instance.initiatingCombatState)
+            MoveEnd();
+        }
+        else
+        {
+            // Setting up variables which are needed to begin the movement.
+            isMoving = true;
+            Vector3Int unitPos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
+            moveTimer = 0f;
+            currentTileIndex = 0;
+            movingPos = new Vector2(path[currentTileIndex].x, path[currentTileIndex].y);
+
+            // This little logic (used later as well) swings the player's sprite a bit to appear somewhat funky!
+            if(rotateBool)
+                endRot = new Vector3(0, 0, rotateRange);
+            else
+                endRot = new Vector3(0, 0, -rotateRange);
+
+            // Updating the direction and the walkability of our past tile.
+            UpdateDirection(unitPos, path[currentTileIndex]);
+            MovementManager.instance.UpdateTileWalkability(unitPos, true, null);
+
+            // Spawns dust in the opposite direction to where we are going. Needs pooling!
+            Vector2 startDustPos = new Vector2(unitPos.x + 0.5f, unitPos.y + 0.2f);
+            Transform dust = GameObject.Instantiate(dustParticle, startDustPos, Quaternion.identity).transform;
+            StartCoroutine(dust.GetComponent<Dust>().DustMove(lastDirection*-1, dustDepleteSpeed));
+        }
+    }
+
+    // Runs every frame when moving. Used to be a coroutine but that proved to be very messy. And perhaps even laggy.
+    private void Move()
+    {
+        if(isMoving)
+        {
+            // Lerp both the position and the rotation to make moving and swinging appear smooth.
+            moveTimer += Time.deltaTime * unitSpeedCurve.Evaluate(moveTimer);
+            transform.position = Vector2.Lerp(transform.position, movingPos, moveTimer);
+            unitSprite.eulerAngles = Vector3.Lerp(startRot, endRot, moveTimer);
+
+            // Timer needs to reset since we are approaching the next tile.
+            if(moveTimer >= 1f)
             {
-                isMoving = false;
-                MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
-                MovementManager.instance.UpdateTileWalkability(startNode, true);
-                /* if(tr.tag == "Player")
-                    unit.PlayAnimation(lastDirection, "Idle", 0.5f); */
-                yield break;
+                // Dust again.
+                Vector2 startDustPos = new Vector2(transform.position.x + 0.5f, transform.position.y + 0.2f);
+                Transform dust = GameObject.Instantiate(dustParticle, startDustPos, Quaternion.identity).transform;
+                StartCoroutine(dust.GetComponent<Dust>().DustMove(lastDirection*-1, dustDepleteSpeed));
+
+                moveTimer = 0f;
+
+                // Updating the current player position.
+                if(transform.CompareTag("Player"))
+                    PlayerController.instance.playerPos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
+
+                // Removing combat points as one tile to move costs one combat point.
+                if(GameStateManager.instance.CheckState("COMBAT"))
+                {
+                    unit.currentCombatPoints -= 1;
+                    UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints-1, unit.currentCombatPoints, unit.combatPoints, gameObject);
+                }
+
+                // If we enganged in combat or we approached
+                engagement = unit.CheckEngagement();
+                if(currentTileIndex == pathLength-1 || engagement)
+                {
+                    MoveEnd();
+                    return;
+                }
+
+                ++currentTileIndex;
+
+                // Earlier explained swinging logic.
+                rotateBool = !rotateBool;
+                if(currentTileIndex == pathLength)
+                    endRot = Vector3.zero;
+                else if(rotateBool)
+                    endRot = new Vector3(0, 0, rotateRange);
+                else
+                    endRot = new Vector3(0, 0, -rotateRange);
+                
+                // Updating the unit position to be exactly the specified position to avoid floating points. Updating the future position as well for the next iteration.
+                transform.position = movingPos;
+                movingPos = new Vector2(path[currentTileIndex].x, path[currentTileIndex].y);
+
             }
-            
-            if(GameStateManager.instance.CheckState("COMBAT"))
-            {
-                unit.currentCombatPoints -= 1;
-                UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints-1, unit.currentCombatPoints, unit.combatPoints, gameObject);
-            }
+        }
+    }
 
-            // Get next grid node.
-            Vector2 futurePos = new Vector2(path[remainingMoves].x, path[remainingMoves].y);
+    private void MoveEnd()
+    {
+        // We arrived at the end of our path or we engaged in combat. Clean up some things.
+        unitSprite.eulerAngles = Vector3.zero;
+        transform.position = movingPos;
+        isMoving = false;
+        Vector3Int currentPos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
+        MovementManager.instance.UpdateTileWalkability(currentPos, false, gameObject);
 
-            // Updating variables.
-            UpdateDirection(new Vector3Int((int)tr.position.x, (int)transform.position.y, 0), path[remainingMoves]);
-            /* if(!unit.isEnemy)
-                unit.PlayAnimation(lastDirection, "Moving", 2); */
-
-            ++remainingMoves;
-
-            // Starting the inner enumerator.
-            bool lastOne = false;
-            if(remainingMoves == combatPoints)
-                lastOne = true;
-            yield return StartCoroutine(MoveLerp(tr.position, futurePos, lastOne));
+        // Initiate combat if we stepped on attack tiles.
+        if(engagement)
+        {
+            CombatManager.instance.InitiateCombat();
+            isAttacking = false;
         }
 
-        /* if(!isAttacking && tr.tag == "Player")
-            unit.PlayAnimation(lastDirection, "Idle", 0.5f); */
-        isMoving = false;
-
-        // Updating past and current tiles.
-        MovementManager.instance.UpdateTileWalkability(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), false);
-        if(path.Length != 0)
-            MovementManager.instance.UpdateTileWalkability(startNode, true);
-
-        // If it's combat or if we are attacking, proceed further.
         if((GameStateManager.instance.CheckState("COMBAT") && !CombatManager.instance.initiatingCombatState) || isAttacking)
         {
             // If we are attacking (regardless of combat or not), play attack animations.
-            if(isAttacking && target != null)
+            if(isAttacking)
             {
+                GameObject target = unit.currentTarget;
                 UpdateDirection(new Vector3Int((int)transform.position.x, (int)transform.position.y, 0), new Vector3Int((int)target.transform.position.x, (int)target.transform.position.y, 0));
-
-                // ------------------ HAS TO BE CHANGED WHEN THERE ARE ENEMY ANIMATIONS IN PLACE
-                var item = transform.GetComponent<AttackItem>();
-                item.target = target;
-                unit.isAttacking = true;
-                item.BasicAttack(lastDirection, target.transform.position);
-                    
+                unit.OnAttack(lastDirection);    
             }
+            
             // If we are not attacking, that means we have reached the target grid node. Check if we still have combat points.
             else if(unit.currentCombatPoints > 0)
             {
@@ -115,106 +182,8 @@ public class UnitMovement : MonoBehaviour
         {
             GameStateManager.instance.ChangeState("EXPLORING");
         }
-        
-        yield break;
-    }
 
-    // This is triggered by the animation event.
-    public void OnAttackAnimation(float angle)
-    {
-        if(GameStateManager.instance.CheckState("COMBAT"))
-        {
-            unit.currentCombatPoints -= 2; // Basic attack costs 2 combat points.
-            UIManager.instance.UpdateCombatPoints(unit.currentCombatPoints-2, unit.currentCombatPoints, unit.combatPoints, gameObject);
-        }
-
-        // Updating health and calling the OnDamage method.
-        var targetUnit = target.GetComponent<Unit>();
-
-        // DAMAGE AMOUNT
-        int damageAmount = unit.damage;
-        targetUnit.OnDamage(unit, damageAmount);
-
-        CameraManager.instance.CameraShake(angle, 0.8f);
-    }
-
-    // The inner enumerator is lerping from one grid node to the other to make smooth movement.
-    private IEnumerator MoveLerp(Vector2 startPos, Vector2 endPos, bool lastOne)
-    {
-        // Spawn dust (TO DO POOLING)
-        Vector2 startDustPos = new Vector2(startPos.x + 0.5f, startPos.y + 0.2f);
-        // Not sure about this shit wtf
-
-        Transform dust = GameObject.Instantiate(dustParticle, startDustPos, Quaternion.identity).transform;
-        StartCoroutine(dust.GetComponent<Dust>().DustMove(lastDirection*-1, dustDepleteSpeed));
-
-        rotateBool = !rotateBool;
-        Vector3 startRot = Vector3.zero;
-        Vector3 endRot;
-        if(lastOne)
-            endRot = Vector3.zero;
-        else
-        {
-            if(rotateBool)
-                endRot = new Vector3(0, 0, rotateRange);
-            else
-                endRot = new Vector3(0, 0, -rotateRange);
-        }
-
-        float timer = 0f;
-
-        while(timer <= 1f)
-        {
-            tr.position = Vector2.Lerp(startPos, endPos, timer);
-            unitSprite.eulerAngles = Vector3.Lerp(startRot, endRot, timer);
-
-            timer += Time.deltaTime * unitSpeedCurve.Evaluate(timer);
-            if(timer >= 1f)
-            {
-                tr.position = endPos;
-                unitSprite.eulerAngles = Vector3.zero;
-
-                // Checking for combat engagement.
-                if(CheckEngagement())
-                {
-                    // Combat has been engaged, setting states, clearing tiles.
-                    GameStateManager.instance.ChangeState("COMBAT");
-
-                    foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
-                        anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
-
-                    isMoving = false;
-                    unit.currentCombatPoints = unit.combatPoints;
-                    CombatManager.instance.InitiateCombat();
-                }
-
-                yield return new WaitForSecondsRealtime(Time.deltaTime);
-            }
-            else
-            {
-                yield return new WaitForSecondsRealtime(Time.deltaTime);
-            }
-        }
-
-        yield break;
-    }
-
-    private bool CheckEngagement()
-    {
-        // If the GameObject of this unit has Player tag and if it isn't combat, check for exisiting aggro tiles to initiate combat.
-        if(tr.tag == "Player" && !GameStateManager.instance.CheckState("COMBAT"))
-        {
-            Vector3Int playerPos = new Vector3Int(Mathf.RoundToInt(tr.position.x), Mathf.RoundToInt(tr.position.y), 0);
-            foreach(GameObject enemy in CombatManager.instance.enemyList)
-            {
-                Tilemap unitAggroTilemap = enemy.GetComponent<Unit>().movementTilemap;
-                if(unitAggroTilemap.HasTile(playerPos))
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
+        engagement = false;
     }
 
     private void UpdateDirection(Vector3Int current, Vector3Int target)

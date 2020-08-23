@@ -46,7 +46,7 @@ public class AttackItem : MonoBehaviour
             if(CheckDistance(itemPos, targetPos))
             {
                 shouldCheckCollision = false;
-                transform.GetComponent<UnitMovement>().OnAttackAnimation(childItem.localRotation.eulerAngles.z);
+                thisUnit.OnAttackEnd(childItem.localRotation.eulerAngles.z);
                 StartCoroutine(FadeOut());
             }
         }

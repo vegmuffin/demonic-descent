@@ -23,7 +23,7 @@ public class LootItem : MonoBehaviour
         if(CursorManager.instance.inUse || !landed)
             return;
 
-        CursorManager.instance.SetCursor("DEFAULT");
+        CursorManager.instance.SetCursor("DEFAULT", string.Empty);
         LootManager.instance.ShowSingleItem(gameObject);
 
         isHovered = true;

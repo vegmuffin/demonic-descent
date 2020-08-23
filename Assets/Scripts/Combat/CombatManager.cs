@@ -9,7 +9,6 @@ public class CombatManager : MonoBehaviour
 
     public Color aggroColor;
     [SerializeField] private Color movementColor = default;
-    [SerializeField] private float timeBetweenTurns = default;
     [SerializeField] private float timeBetweenRounds = default;
     [SerializeField] private float timeAfterAttack = default;
     public AnimationCurve cameraShakeSpeedCurve;
@@ -19,6 +18,8 @@ public class CombatManager : MonoBehaviour
 
     [HideInInspector] public List<GameObject> enemyList = new List<GameObject>();
     [HideInInspector] public List<GameObject> combatQueue = new List<GameObject>();
+    [HideInInspector] public List<GameObject> combatOrder = new List<GameObject>();
+    [HideInInspector] public Dictionary<GameObject, bool> unitWaits = new Dictionary<GameObject, bool>();
     [HideInInspector] public Unit currentUnit = null;
 
     [HideInInspector] public bool initiatingCombatState = false;
@@ -45,6 +46,12 @@ public class CombatManager : MonoBehaviour
     // Giving some time before combat to play animations and shit.
     public void InitiateCombat()
     {
+        // Combat has been engaged, setting states, clearing tiles.
+        GameStateManager.instance.ChangeState("COMBAT");
+
+        foreach(GameObject anotherEnemy in CombatManager.instance.enemyList)
+            anotherEnemy.GetComponent<Unit>().movementTilemap.ClearAllTiles();
+
         // Clearing previous combat queue
         UIManager.instance.ClearCombatQueue();
 
@@ -52,9 +59,9 @@ public class CombatManager : MonoBehaviour
         BlockOff();
         StartCoroutine(WaitBetweenRounds(true));
 
-        // Creating a log entry.
+        /* // Creating a log entry.
         string logEntry = "Battle is starting!";
-        UILog.instance.NewLogEntry(logEntry);
+        UILog.instance.NewLogEntry(logEntry); */
     }
 
     // When the battle begins, block of the room to prevent from engaging in other encounters.
@@ -67,7 +74,7 @@ public class CombatManager : MonoBehaviour
         {
             GameObject blockage = Instantiate(block, coord, Quaternion.identity);
             blockages.Add(blockage);
-            MovementManager.instance.UpdateTileWalkability(coord, false);
+            MovementManager.instance.UpdateTileWalkability(coord, false, null);
         }
     }
 
@@ -78,14 +85,15 @@ public class CombatManager : MonoBehaviour
         {
             Vector3 trPos = blockage.transform.position;
             Vector3Int position = new Vector3Int((int)trPos.x, (int)trPos.y, 0);
-            MovementManager.instance.UpdateTileWalkability(position, true);
+            MovementManager.instance.UpdateTileWalkability(position, true, null);
             Destroy(blockage);
         }
         
         blockages.Clear();
+        
     }
 
-    // Getting all the units in the game (again, later on only in the current room) and queueing them based on the combat points.
+    // Getting all the units in the game and queueing them based on the combat points.
     private void QueueUnits()
     {
         GameObject player = GameObject.Find("Player");
@@ -112,30 +120,34 @@ public class CombatManager : MonoBehaviour
                 }
             }
         }
+
+        for(int i = 0; i < combatQueue.Count; ++i)
+        {
+            combatOrder.Add(combatQueue[i]);
+            unitWaits.Add(combatQueue[i], false);
+        }
     }
 
     public void ExecuteTurns()
     {
+
         if(currentUnit == null)
-        {
             currentUnit = combatQueue[currentIndex].GetComponent<Unit>();
-            currentUnit.currentCombatPoints = currentUnit.combatPoints;
-        }
         else if(combatQueue[currentIndex].GetInstanceID() != currentUnit.gameObject.GetInstanceID())
-        {
             currentUnit = combatQueue[currentIndex].GetComponent<Unit>();
-            currentUnit.currentCombatPoints = currentUnit.combatPoints;
-        }
         else
         {
             // Do nothing, as the turn didn't finish yet and we dont need to set the combat points.
         }
+        whoseTurn = combatQueue[currentIndex].name;
         if(whoseTurn == "Player")
         {
             Vector3Int playerPos = new Vector3Int((int)combatQueue[currentIndex].transform.position.x, (int)combatQueue[currentIndex].transform.position.y, 0);
             int speed = currentUnit.currentCombatPoints;
-            MovementManager.instance.GenerateGrid(playerPos, speed, movementTilemap, movementColor);
-            UIManager.instance.EnableDisableButtons(true);
+            MovementManager.instance.GenerateAttackGrid(playerPos, speed, movementTilemap, movementColor);
+            UIManager.instance.skipButton.interactable = true;
+            if(!unitWaits[combatQueue[currentIndex]])
+                UIManager.instance.waitButton.interactable = true;
         }
         else if(whoseTurn == "Skeleton")
         {
@@ -148,7 +160,8 @@ public class CombatManager : MonoBehaviour
     {
         if(combatQueue[currentIndex].tag == "Player")
         {
-            UIManager.instance.EnableDisableButtons(false);
+            UIManager.instance.waitButton.interactable = false;
+            UIManager.instance.skipButton.interactable = false;
         }
 
         UIManager.instance.updatingCombatPoints = null;
@@ -156,7 +169,22 @@ public class CombatManager : MonoBehaviour
         if(currentIndex == combatQueue.Count)
         {
             currentIndex = 0;
-            whoseTurn = combatQueue[currentIndex].name;
+
+            // It's not possible to just copy over by assignment, since collections are reference type variables, it will lead to the same object.
+            combatQueue.Clear();
+            for (int i = 0; i < combatOrder.Count; ++i)
+                combatQueue.Add(combatOrder[i]);
+
+            currentUnit = null;
+            whoseTurn = "";
+
+            foreach(GameObject go in combatOrder)
+            {
+                var unit = go.GetComponent<Unit>();
+                unit.currentCombatPoints = unit.combatPoints;
+                unitWaits[go] = false;
+            }
+
             UIManager.instance.NextRound();
         } 
         else
@@ -165,6 +193,17 @@ public class CombatManager : MonoBehaviour
             UIManager.instance.HideElement();
         }
         
+    }
+
+    public void AfterWait(GameObject go)
+    {
+        int index = GetObjectIndex(go);
+        combatQueue.RemoveAt(index);
+        combatQueue.Add(go);
+        whoseTurn = combatQueue[currentIndex].name;
+        unitWaits[go] = true;
+        UIManager.instance.PushDownElement(index+1);
+        ExecuteTurns();
     }
 
     public void RemoveFromQueue(GameObject go)
@@ -178,25 +217,33 @@ public class CombatManager : MonoBehaviour
             }
         }
 
-        if(combatQueue.Count <= 1)
+        for(int i = 0; i < combatOrder.Count; ++i)
         {
-            EndCombat();
-            enemyList.Clear();
+            if(combatOrder[i].GetInstanceID() == go.GetInstanceID())
+            {
+                combatOrder.RemoveAt(i);
+                break;
+            }
         }
+
+        if(combatOrder.Count <= 1)
+            EndCombat();
     }
 
     private void EndCombat()
     {
         GameStateManager.instance.ChangeState("EXPLORING");
+        enemyList.Clear();
         combatQueue.Clear();
+        combatOrder.Clear();
         RoomManager.instance.currentRoom.enemyList.Clear();
         UIManager.instance.EndQueueUI();
         UIManager.instance.ResetCombatPointsBar();
         ClearBlockages();
 
-        // Creating a log entry.
+        /* // Creating a log entry.
         string logEntry = "Battle ends with a victory!";
-        UILog.instance.NewLogEntry(logEntry);
+        UILog.instance.NewLogEntry(logEntry); */
 
         currentRound = 0;
     }

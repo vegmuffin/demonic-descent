@@ -10,10 +10,10 @@ public class GameStateManager : MonoBehaviour
     private Image currentStateImage;
     private Image previousStateImage;
 
-    [SerializeField] private Sprite exploringImage;
-    [SerializeField] private Sprite combatImage;
-    [SerializeField] private Sprite snoozeImage;
-    [SerializeField] private Sprite movingImage;
+    [SerializeField] private Sprite exploringImage = default;
+    [SerializeField] private Sprite combatImage = default;
+    [SerializeField] private Sprite snoozeImage = default;
+    [SerializeField] private Sprite movingImage = default;
     
     public enum GameStates
     {

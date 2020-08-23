@@ -42,9 +42,8 @@ public class SkeletonAI : MonoBehaviour
             {
                 path[i] = new Vector3Int((int)newPath[i].position.x, (int)newPath[i].position.y, 0);
             }
-            skeletonUnitMovement.remainingMoves = 0;
             
-            StartCoroutine(skeletonUnitMovement.MoveAlongPath(startCoord, path, path.Length, false, null));
+            skeletonUnitMovement.StartMoving(path, path.Length, false);
         }
         else
         {
@@ -55,7 +54,6 @@ public class SkeletonAI : MonoBehaviour
                 path[i] = new Vector3Int((int)pathToPlayer[i].position.x, (int)pathToPlayer[i].position.y, 0);
             }
             bool isAttacking = false;
-            GameObject target = null;
             if(path.Length + 2 <= skeletonUnit.currentCombatPoints)
             {
                 isAttacking = true;
@@ -66,13 +64,12 @@ public class SkeletonAI : MonoBehaviour
                 {
                     if(col.gameObject.tag == "Player")
                     {
-                        target = col.gameObject;
+                        skeletonUnit.currentTarget = col.gameObject;
                         break;
                     }
                 }
             }
-            skeletonUnitMovement.remainingMoves = 0;
-            StartCoroutine(skeletonUnitMovement.MoveAlongPath(startCoord, path, path.Length, isAttacking, target));
+            skeletonUnitMovement.StartMoving(path, path.Length, isAttacking);
         }
     }
 
@@ -83,19 +80,19 @@ public class SkeletonAI : MonoBehaviour
 
         // Bottom
         endPos = new Vector3Int(playerPos.x, playerPos.y - 1, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false, true));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
 
         // Left
         endPos = new Vector3Int(playerPos.x - 1, playerPos.y, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false, true));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
 
         // Top
         endPos = new Vector3Int(playerPos.x, playerPos.y + 1, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false, true));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
 
         // Right
         endPos = new Vector3Int(playerPos.x + 1, playerPos.y, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false, true));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
 
         int[] pathLengths = new int[4];
         for(int i = 0; i < paths.Count; ++i)
