@@ -7,6 +7,7 @@ TagManager:
   - Potion
   - Enemy
   - Item
+  - Room
   layers:
   - Default
   - TransparentFX

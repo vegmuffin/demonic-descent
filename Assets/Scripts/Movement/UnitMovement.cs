@@ -25,7 +25,9 @@ public class UnitMovement : MonoBehaviour
     private Vector3 startRot = Vector3.zero;
     private Vector3 endRot = Vector3.zero;
     private bool rotateBool = false;
-    private float rotateRange = 7f;
+    private readonly float rotateRange = 4f;
+
+    private PlayerVisuals visuals;
 
     private void Awake()
     {
@@ -34,6 +36,7 @@ public class UnitMovement : MonoBehaviour
         unitSprite = transform.Find("UnitSprite");
         dustParticle = MovementManager.instance.dustParticle;
         dustDepleteSpeed = MovementManager.instance.dustDepleteSpeed;
+        visuals = transform.GetComponent<PlayerVisuals>();
     }
 
     private void Update()
@@ -73,8 +76,12 @@ public class UnitMovement : MonoBehaviour
 
             // Spawns dust in the opposite direction to where we are going. Needs pooling!
             Vector2 startDustPos = new Vector2(unitPos.x + 0.5f, unitPos.y + 0.2f);
-            Transform dust = GameObject.Instantiate(dustParticle, startDustPos, Quaternion.identity).transform;
+            Transform dust = PoolingManager.instance.GetObject(dustParticle, startDustPos).transform;
             StartCoroutine(dust.GetComponent<Dust>().DustMove(lastDirection*-1, dustDepleteSpeed));
+
+            // Update eye visuals.
+            if(transform.CompareTag("Player"))
+                visuals.MoveEyes(lastDirection);
         }
     }
 
@@ -93,14 +100,17 @@ public class UnitMovement : MonoBehaviour
             {
                 // Dust again.
                 Vector2 startDustPos = new Vector2(transform.position.x + 0.5f, transform.position.y + 0.2f);
-                Transform dust = GameObject.Instantiate(dustParticle, startDustPos, Quaternion.identity).transform;
+                Transform dust = PoolingManager.instance.GetObject(dustParticle, startDustPos).transform;
                 StartCoroutine(dust.GetComponent<Dust>().DustMove(lastDirection*-1, dustDepleteSpeed));
 
                 moveTimer = 0f;
 
                 // Updating the current player position.
                 if(transform.CompareTag("Player"))
-                    PlayerController.instance.playerPos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
+                {
+                    Vector3Int pos = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
+                    PlayerController.instance.playerPos = pos;
+                }
 
                 // Removing combat points as one tile to move costs one combat point.
                 if(GameStateManager.instance.CheckState("COMBAT"))
@@ -132,6 +142,14 @@ public class UnitMovement : MonoBehaviour
                 transform.position = movingPos;
                 movingPos = new Vector2(path[currentTileIndex].x, path[currentTileIndex].y);
 
+                if (transform.CompareTag("Player"))
+                {
+                    Vector2 dir = lastDirection;
+                    UpdateDirection(PlayerController.instance.playerPos, new Vector3Int((int)movingPos.x, (int)movingPos.y, 0));
+
+                    if (lastDirection != dir)
+                        visuals.MoveEyes(lastDirection);
+                }
             }
         }
     }
@@ -184,6 +202,10 @@ public class UnitMovement : MonoBehaviour
         }
 
         engagement = false;
+
+        lastDirection = Vector2.zero;
+        if (transform.CompareTag("Player"))
+            visuals.MoveEyes(Vector2.zero);
     }
 
     private void UpdateDirection(Vector3Int current, Vector3Int target)

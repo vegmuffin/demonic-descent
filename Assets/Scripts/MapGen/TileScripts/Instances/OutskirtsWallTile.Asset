@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22b9c9fe34b51424a916406ca93340ae, type: 3}
+  m_Name: OutskirtsWallTile
+  m_EditorClassIdentifier: Assembly-CSharp::WallTile
+  sprites:
+  - {fileID: -6083480919647936627, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: 5520440659467382934, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: -5413525107348231991, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: -2212774120081887481, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: 8493200050359009581, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: -677548959801218195, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: -4132930978188667292, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: 7011994704411840389, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: 1562923126995564975, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: 4600571705300804822, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: -4709897536441781965, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  - {fileID: -7178113773918533573, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}
+  preview: {fileID: 3420410072932587400, guid: 6d70e64d92d77445695bd13214c60d7d, type: 3}

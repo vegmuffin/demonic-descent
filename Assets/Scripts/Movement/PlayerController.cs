@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+[RequireComponent(typeof(Unit))]
+[RequireComponent(typeof(UnitMovement))]
+[RequireComponent(typeof(Dust))]
+[RequireComponent(typeof(PlayerVisuals))]
+[RequireComponent(typeof(AttackItem))]
 public class PlayerController : MonoBehaviour
 {
     public static PlayerController instance;
@@ -17,7 +22,7 @@ public class PlayerController : MonoBehaviour
     private Bounds enemyBounds;
 
     private List<Vector3Int> pathfindingTiles = new List<Vector3Int>();
-    private Tilemap groundTilemap;
+    private Tilemap tilemap;
     private Tilemap movementTilemap;
     private int gridOffsetX = 0;
     private int gridOffsetY = 0;
@@ -40,7 +45,7 @@ public class PlayerController : MonoBehaviour
         playerMovement = player.GetComponent<UnitMovement>();
         playerUnit = player.GetComponent<Unit>();
 
-        groundTilemap = GameObject.Find("GroundTilemap").GetComponent<Tilemap>();
+        tilemap = GameObject.Find("Tilemap").GetComponent<Tilemap>();
         movementTilemap = GameObject.Find("MovementTilemap").GetComponent<Tilemap>();
 
         playerPos = new Vector3Int((int)player.position.x, (int)player.position.y, 0);
@@ -109,12 +114,12 @@ public class PlayerController : MonoBehaviour
                     }
 
                     // Executing the pathfinding method and coloring the ground to indicate the path.
-                    List<GridNode> path = MovementManager.instance.Pathfinding(playerPos, mousePos, speed, isExploring, movementTilemap, false);
+                    List<GridNode> path = MovementManager.instance.Pathfinding(playerPos, mousePos, speed, isExploring, movementTilemap);
                     int endIndex = 0;
                     for(int i = path.Count-1; i >= endIndex; --i)
                     {
                         Vector3Int coord = new Vector3Int(path[i].position.x, path[i].position.y, 0);
-                        groundTilemap.SetColor(coord, pathfindingColor);
+                        tilemap.SetColor(coord, pathfindingColor);
                         pathfindingTiles.Add(coord);
                     }
 
@@ -157,8 +162,15 @@ public class PlayerController : MonoBehaviour
     // Updates the hover logic when crossing tiles (highlighting tile, checking for enemies, generating path).
     private void OnNewTileHover(Vector3Int mousePos, bool combatState)
     {
+        // Now with free camera movement it's easy to have mouse hovering above non-existent tiles.
+        if (!CameraManager.instance.IsPointInsideMap(mousePos))
+        {
+            isHoveringAboveEnemy = false;
+            return;
+        }
+
         // Reset color on the mouse-hovering tile.
-        groundTilemap.SetColor(tempTilePos, Color.white);
+        tilemap.SetColor(tempTilePos, Color.white);
 
         tempTilePos = mousePos;
         ClearPathfindingTiles();
@@ -192,7 +204,7 @@ public class PlayerController : MonoBehaviour
         {
             // Tile is walkable, highlight mouse position accordingly.
             isHoveringAboveEnemy = false;
-            groundTilemap.SetColor(mousePos, mouseTintColor);
+            tilemap.SetColor(mousePos, mouseTintColor);
         }
 
         // If we are not hovering above an enemy, try to find a path to the hovering tile.
@@ -208,12 +220,12 @@ public class PlayerController : MonoBehaviour
             }
 
             // Executing the pathfinding method and coloring the path to the end (if there is one).
-            List<GridNode> path = MovementManager.instance.Pathfinding(playerPos, mousePos, speed, isExploring, movementTilemap, false);
+            List<GridNode> path = MovementManager.instance.Pathfinding(playerPos, mousePos, speed, isExploring, movementTilemap);
             int endIndex = 0;
             for(int i = path.Count-1; i >= endIndex; --i)
             {
                 Vector3Int coord = new Vector3Int(path[i].position.x, path[i].position.y, 0);
-                groundTilemap.SetColor(coord, pathfindingColor);
+                tilemap.SetColor(coord, pathfindingColor);
                 pathfindingTiles.Add(coord);
             }
 
@@ -290,7 +302,7 @@ public class PlayerController : MonoBehaviour
 
         foreach(Vector3Int pos in pathfindingTiles)
         {
-            groundTilemap.SetColor(pos, Color.white);
+            tilemap.SetColor(pos, Color.white);
         }
         pathfindingTiles.Clear();
     }
@@ -330,5 +342,14 @@ public class PlayerController : MonoBehaviour
     {
         gridOffsetX = x;
         gridOffsetY = y;
+    }
+
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (col.CompareTag("Room"))
+        {
+            Room r = col.GetComponent<RoomSetter>().room;
+            RoomManager.instance.SetRoom(r);
+        }
     }
 }

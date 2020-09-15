@@ -19,9 +19,7 @@ public class MovementManager : MonoBehaviour
     private int distanceX;
     private int distanceY;
 
-    private Tilemap wallTilemap;
-    private Tilemap groundTilemap;
-    private Tilemap movementTilemap;
+    private Tilemap tilemap;
 
     [HideInInspector] public GameObject player;
 
@@ -29,9 +27,7 @@ public class MovementManager : MonoBehaviour
     {
         instance = this;
         player = GameObject.Find("Player");
-        movementTilemap = GameObject.Find("MovementTilemap").GetComponent<Tilemap>();
-        groundTilemap = GameObject.Find("GroundTilemap").GetComponent<Tilemap>();
-        wallTilemap = GameObject.Find("WallTilemap").GetComponent<Tilemap>();
+        tilemap = GameObject.Find("Tilemap").GetComponent<Tilemap>();
     }
 
     // Populating the entire pathfinding grid.
@@ -57,8 +53,10 @@ public class MovementManager : MonoBehaviour
                 Vector3Int tilePos = new Vector3Int(x+startX, y+startY, 0);
                 pathfindingGrid[x, y] = new GridNode(false, (Vector2Int)tilePos, x, y);
 
-                if(groundTilemap.HasTile(tilePos) && !wallTilemap.HasTile(tilePos))
+                if(tilemap.GetTile(tilePos) is GroundTile)
+                {
                     pathfindingGrid[x, y] = new GridNode(true, (Vector2Int)tilePos, x, y);
+                }
             }
         }
 
@@ -133,7 +131,7 @@ public class MovementManager : MonoBehaviour
             for(int y = startY; y <= endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap, true);
+                List<GridNode> path = Pathfinding(coord, tilePos, speed, false, tilemap);
                 if(path.Count == 0)
                     tilemap.SetTile(tilePos, null);
             }
@@ -142,7 +140,7 @@ public class MovementManager : MonoBehaviour
 
     // A* pathfinding algorithm modified to fit this project.
     public List<GridNode> Pathfinding(Vector3Int startCoord, Vector3Int endCoord, int gridSpeed, bool exploring, 
-                                      Tilemap whichTilemap, bool gridGeneration)
+                                      Tilemap whichTilemap)
     {
 
         // Empty path.

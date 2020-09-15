@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-[RequireComponent(typeof(UnitMovement))]
 public class Unit : MonoBehaviour
 {
     public Sprite combatQueueImage;

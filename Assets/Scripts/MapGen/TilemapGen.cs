@@ -6,12 +6,13 @@ using UnityEngine.Tilemaps;
 public class TilemapGen : MonoBehaviour
 {
     [HideInInspector] public static TilemapGen instance = default;
-    
-    [SerializeField] private Tilemap wallTilemap = default;
-    [SerializeField] private Tilemap groundTilemap = default;
+
+    [SerializeField] private Tilemap tilemap = default;
     [SerializeField] private Tilemap transparentTilemap = default;
     [Space]
     [SerializeField] private Tile transparentTile = default;
+    [SerializeField] private TileBase groundTile = default;
+    [SerializeField] private TileBase wallTile = default;
     private int roomWidth;
     private int roomHeight;
     private int offsetBetweenRooms;
@@ -66,11 +67,13 @@ public class TilemapGen : MonoBehaviour
             if(expCoordMaxY > endY)
                 endY = expCoordMaxY;
         }
+        tilemap.RefreshAllTiles();
 
-        startX = startX - (roomWidth + 50);
-        startY = startY - (roomHeight + 50);
-        endX = endX + (roomWidth + 50);
-        endY = endY + (roomHeight + 50);
+        startX -= (roomWidth + 50);
+        startY -= (roomHeight + 50);
+        endX += (roomWidth + 50);
+        endY += (roomHeight + 50);
+        CameraManager.instance.SetBounds(startX, endX, startY, endY);
         MovementManager.instance.PopulateGrid(startX, startY, endX, endY);
     }
 
@@ -86,8 +89,7 @@ public class TilemapGen : MonoBehaviour
             for(int y = startY; y < endY; ++y)
             {
                 Vector3Int tilePos = new Vector3Int(x, y, 0);
-                Tile tile = Tiles.instance.GetGroundTile();
-                groundTilemap.SetTile(tilePos, tile);
+                tilemap.SetTile(tilePos, groundTile);
                 transparentTilemap.SetTile(tilePos, transparentTile);
             }
         }
@@ -109,40 +111,11 @@ public class TilemapGen : MonoBehaviour
                 // There are edge cases where we have to paint corner tiles instead.
                 if(x == startX || x == endX)
                 {
-                    Tile tile = CornerTile(x, y, startX, startY, endX, endY);
-
-                    if(!tile && y != endY)
-                    {
-                        if(x == startX)
-                            tile = Tiles.instance.GetLeftWall();
-                        else if(x == endX)
-                            tile = Tiles.instance.GetRightWall();
-                    }
-                    else if(y == endY)
-                    {
-                        if(x == startX)
-                            wallTilemap.SetTile(tilePos, Tiles.instance.GetLeftWall());
-                        else if(x == endX)
-                            wallTilemap.SetTile(tilePos, Tiles.instance.GetRightWall());
-
-                        tilePos = new Vector3Int(tilePos.x, tilePos.y+1, 0);
-                        wallTilemap.SetTile(tilePos, Tiles.instance.GetBrickWall());
-                    }
-
-                    wallTilemap.SetTile(tilePos, tile);
+                    tilemap.SetTile(tilePos, wallTile);
                 } 
                 else if(y == startY || y == endY)
                 {
-                    Vector3Int tilePosBottom = new Vector3Int(x, startY, 0);
-                    Vector3Int tilePosTop = new Vector3Int(x, endY+1, 0);
-
-                    wallTilemap.SetTile(tilePosBottom, Tiles.instance.GetBottomWall());
-                    wallTilemap.SetTile(tilePosTop, Tiles.instance.GetTopWall());
-
-                    tilePosTop = new Vector3Int(x, endY, 0);
-                    wallTilemap.SetTile(tilePosTop, Tiles.instance.GetBrickWall());
-
-                    break;
+                    tilemap.SetTile(tilePos, wallTile);
                 }
             }
         }
@@ -151,31 +124,29 @@ public class TilemapGen : MonoBehaviour
     // It's better to paint intersections separately, since their width and length are also modifiable.
     private void GenerateIntersections(Vector2 coord)
     {
-        // intersectionCoord will get the middle coordinate between rooms. We will paint various tiles around that.
-        // We can also check if there is already an intersection there to avoid pointless computing power.
 
         // Left
         Vector3Int intersectionCoord = new Vector3Int((int)coord.x-roomWidth-offsetBetweenRooms, (int)coord.y, 0);
-        Vector3Int checkCoord = new Vector3Int(intersectionCoord.x-offsetBetweenRooms, intersectionCoord.y, 0);
-        if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
+        Vector3Int checkCoord = new Vector3Int(intersectionCoord.x - offsetBetweenRooms, intersectionCoord.y, 0);
+        if(tilemap.GetTile(checkCoord))
             Intersection(intersectionCoord, "left");
 
         // Right
         intersectionCoord = new Vector3Int((int)coord.x+roomWidth+offsetBetweenRooms, (int)coord.y, 0);
-        checkCoord = new Vector3Int(intersectionCoord.x+offsetBetweenRooms, intersectionCoord.y, 0);
-        if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
+        checkCoord = new Vector3Int(intersectionCoord.x + offsetBetweenRooms, intersectionCoord.y, 0);
+        if (tilemap.GetTile(checkCoord))
             Intersection(intersectionCoord, "right");
 
         // Bottom
         intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y-roomHeight-offsetBetweenRooms, 0);
-        checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y-offsetBetweenRooms, 0);
-        if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
+        checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y - offsetBetweenRooms, 0);
+        if (tilemap.GetTile(checkCoord))
             Intersection(intersectionCoord, "bottom");
 
         // Top
         intersectionCoord = new Vector3Int((int)coord.x, (int)coord.y+roomHeight+offsetBetweenRooms, 0);
-        checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y+offsetBetweenRooms, 0);
-        if(wallTilemap.HasTile(checkCoord) && !groundTilemap.HasTile(intersectionCoord))
+        checkCoord = new Vector3Int(intersectionCoord.x, intersectionCoord.y + offsetBetweenRooms, 0);
+        if (tilemap.GetTile(checkCoord))
             Intersection(intersectionCoord, "top");
     }
 
@@ -194,43 +165,23 @@ public class TilemapGen : MonoBehaviour
                 for(int y = coord.y-stepWidth; y <= coord.y+stepWidth; ++y)
                 {
                     // Painting ground tiles
-                    Tile tile = Tiles.instance.GetGroundTile();
                     Vector3Int groundTilePos = new Vector3Int(x, y, 0);
-                    groundTilemap.SetTile(groundTilePos, tile);
+                    tilemap.SetTile(groundTilePos, groundTile);
                     transparentTilemap.SetTile(groundTilePos, transparentTile);
 
                     // Eliminating walls that were previously generated. Easier to do than putting more confusing code into wall tilemap generation.
                     if(x == coord.x-offsetBetweenRooms || x == coord.x+offsetBetweenRooms)
-                        wallTilemap.SetTile(groundTilePos, null);
+                        tilemap.SetTile(groundTilePos, groundTile);
+
                 }
             }
 
             // Painting walls on the side of the intersection for better immersion.
             for(int i = coord.x-offsetBetweenRooms; i <= coord.x+offsetBetweenRooms; ++i)
             {
-                Tile topTile = Tiles.instance.GetTopWall();
-                Tile botTile = Tiles.instance.GetBottomWall();
-                wallTilemap.SetTile(new Vector3Int(i, coord.y+stepWidth+1, 0), topTile);
-                wallTilemap.SetTile(new Vector3Int(i, coord.y-stepWidth-1, 0), botTile);
-            }
-
-            // Edge cases for corners.
-
-            // Bottom left
-            Vector3Int tilePos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y-stepWidth-1, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomLeftCorner(false));
-
-            // Bottom right
-            tilePos = new Vector3Int(coord.x+offsetBetweenRooms, coord.y-stepWidth-1, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomRightCorner(false));
-
-            // Top left
-            tilePos = new Vector3Int(coord.x-offsetBetweenRooms, coord.y+stepWidth+1, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopLeftCorner(false));
-
-            // Top right
-            tilePos = new Vector3Int(coord.x+offsetBetweenRooms, coord.y+stepWidth+1, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopRightCorner(false));           
+                tilemap.SetTile(new Vector3Int(i, coord.y+stepWidth+1, 0), wallTile);
+                tilemap.SetTile(new Vector3Int(i, coord.y-stepWidth-1, 0), wallTile);
+            }         
 
         } 
         // Bottom / Top intersection generation. Everything is the same but flipped, since length becomes width and vice versa.
@@ -240,58 +191,24 @@ public class TilemapGen : MonoBehaviour
             {
                 for(int y = coord.y-offsetBetweenRooms; y <= coord.y+offsetBetweenRooms; ++y)
                 {
-                    Tile tile = Tiles.instance.GetGroundTile();
                     Vector3Int groundTilePos = new Vector3Int(x, y, 0);
-                    groundTilemap.SetTile(groundTilePos, tile);
+                    tilemap.SetTile(groundTilePos, groundTile);
                     transparentTilemap.SetTile(groundTilePos, transparentTile);
 
                     // Have to account for brick wall as well.
-                    if(y == coord.y-offsetBetweenRooms || y == coord.y-offsetBetweenRooms+1 || y == coord.y+offsetBetweenRooms)
-                        wallTilemap.SetTile(groundTilePos, null);
+                    if(y == coord.y-offsetBetweenRooms || y == coord.y-offsetBetweenRooms || y == coord.y+offsetBetweenRooms)
+                        tilemap.SetTile(groundTilePos, groundTile);
                 }
             }
 
             for(int i = coord.y-offsetBetweenRooms; i <= coord.y+offsetBetweenRooms; ++i)
             {
-                Tile leftTile = Tiles.instance.GetLeftWall();
-                Tile rightTile = Tiles.instance.GetRightWall();
-                wallTilemap.SetTile(new Vector3Int(coord.x+stepWidth+1, i, 0), rightTile);
-                wallTilemap.SetTile(new Vector3Int(coord.x-stepWidth-1, i, 0), leftTile);
+                tilemap.SetTile(new Vector3Int(coord.x+stepWidth+1, i, 0), wallTile);
+                tilemap.SetTile(new Vector3Int(coord.x-stepWidth-1, i, 0), wallTile);
             }
 
-            Vector3Int tilePos = new Vector3Int(coord.x-stepWidth-1, coord.y-offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetBrickWall());
-            tilePos = new Vector3Int(coord.x-stepWidth-1, coord.y-offsetBetweenRooms+1, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopRightCorner(false));
-
-            tilePos = new Vector3Int(coord.x+stepWidth+1, coord.y-offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetBrickWall());
-            tilePos = new Vector3Int(coord.x+stepWidth+1, coord.y-offsetBetweenRooms+1, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetTopLeftCorner(false));
-
-            tilePos = new Vector3Int(coord.x-stepWidth-1, coord.y+offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomRightCorner(false));
-
-            tilePos = new Vector3Int(coord.x+stepWidth+1, coord.y+offsetBetweenRooms, 0);
-            wallTilemap.SetTile(tilePos, Tiles.instance.GetBottomLeftCorner(false));
-            
         }
 
-    }
-
-    // Checks if the tile should be a corner given the coordinates. Returns null if it isn't.
-    private Tile CornerTile(int x, int y, int startX, int startY, int endX, int endY)
-    {
-        if(y == startY && x == startX)
-            return Tiles.instance.GetBottomLeftCorner(true);
-        else if(y == endY && x == startX)
-            return Tiles.instance.GetTopLeftCorner(true);
-        else if(y == endY && x == endX)
-            return Tiles.instance.GetTopRightCorner(true);
-        else if(y == startY && x == endX)
-            return Tiles.instance.GetBottomRightCorner(true);
-        else
-            return null;
     }
 
     private Room GenerateRoom(Vector2 coord, Vector2 expandedCoord, List<Vector2> map)

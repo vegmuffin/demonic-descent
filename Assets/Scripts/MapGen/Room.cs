@@ -35,6 +35,7 @@ public class Room
         {
             // Getting preset from PresetManager.
             preset = PresetManager.instance.InstantiatePreset(li, ti, ri, bi, position);
+            preset.GetComponent<RoomSetter>().room = this;
 
             Transform presetTransform = preset.transform;
             for(int i = 0; i < presetTransform.childCount; ++i)

@@ -30,7 +30,7 @@ public class Dust : MonoBehaviour
 
             if(timer >= 1f)
             {
-                Destroy(gameObject);
+                gameObject.SetActive(false);
                 yield break;
             }
             else

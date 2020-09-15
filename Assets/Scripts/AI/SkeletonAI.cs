@@ -10,6 +10,7 @@ public class SkeletonAI : MonoBehaviour
 
     private void Awake()
     {
+        
         skeletonUnit = transform.GetComponent<Unit>();
         skeletonUnitMovement = transform.GetComponent<UnitMovement>();
         player = GameObject.Find("Player");
@@ -80,19 +81,19 @@ public class SkeletonAI : MonoBehaviour
 
         // Bottom
         endPos = new Vector3Int(playerPos.x, playerPos.y - 1, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap));
 
         // Left
         endPos = new Vector3Int(playerPos.x - 1, playerPos.y, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap));
 
         // Top
         endPos = new Vector3Int(playerPos.x, playerPos.y + 1, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap));
 
         // Right
         endPos = new Vector3Int(playerPos.x + 1, playerPos.y, 0);
-        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap, false));
+        paths.Add(MovementManager.instance.Pathfinding(startPos, endPos, 0, true, skeletonUnit.movementTilemap));
 
         int[] pathLengths = new int[4];
         for(int i = 0; i < paths.Count; ++i)
